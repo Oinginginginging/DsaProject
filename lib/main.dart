@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:get/get.dart';
+import 'package:prototype/getX/data_controller.dart';
 
 import './components/calendar_week.dart';
 import './components/calendar_day.dart';
@@ -48,10 +49,11 @@ class _MyHomePageState extends State<MyHomePage> {
 
   @override
   Widget build(BuildContext context) {
+    DataController dataController = Get.put(DataController());
     Widget page;
     switch (selectedIndex) {
       case 0:
-        page = const CalendarMonth();
+        page = CalendarMonth(dataController);
         title = 'Monthly Views';
         break;
       case 1:

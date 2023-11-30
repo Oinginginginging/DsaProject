@@ -1,4 +1,5 @@
 import 'package:get/get.dart';
+import 'package:prototype/components/calendar_month.dart';
 import 'package:syncfusion_flutter_calendar/calendar.dart';
 import '../dataClass/data_class.dart';
 
@@ -6,6 +7,16 @@ import 'package:flutter/material.dart';
 
 class DataController extends GetxController {
   MeetingDataSource mMeetings = MeetingDataSource(getMeetingsDataSource());
+
+  void updateMeeting(List<dynamic> newData) {
+    mMeetings.updateMeetingData(newData);
+    update();
+  }
+
+  void deleteMeeting(dynamic data) {
+    mMeetings.deleteMeetingData(data);
+    update();
+  }
 }
 
 List<Meeting> getMeetingsDataSource() {
@@ -29,7 +40,7 @@ List<Meeting> getMeetingsDataSource() {
 
   final DateTime startTime5 =
       DateTime(today.year, today.month, today.day, 28, 0, 0);
-  final DateTime endTime5 = startTime4.add(const Duration(hours: 2));
+  final DateTime endTime5 = startTime5.add(const Duration(hours: 2));
   /* recurrence rule
     - FREQ : DIALY, WEEKLY, MONTHLY, YEARLY, EVERYWEEKDAY
     - INTERVEL : Number
@@ -131,5 +142,9 @@ class MeetingDataSource extends CalendarDataSource {
 
   void addMeetingData(dynamic newData) {
     appointments!.add(newData);
+  }
+
+  void deleteMeetingData(dynamic data) {
+    appointments!.removeWhere((element) => element == data);
   }
 }

@@ -3,7 +3,9 @@ import 'package:flutter/material.dart';
 class Meeting {
   /// Creates a meeting class with required details.
   Meeting(this.eventName, this.from, this.to, this.background, this.isAllDay,
-      {this.isDone = false, this.category = 'None'});
+      {this.isDone = false,
+      this.category = 'None',
+      this.showTriangularMark = false});
 
   /// Event name which is equivalent to subject property of [Appointment].
   String eventName;
@@ -21,6 +23,8 @@ class Meeting {
   bool isAllDay;
 
   bool isDone;
+
+  bool showTriangularMark;
 
   String category;
 
