@@ -136,6 +136,31 @@ class _CalendarMonth extends State<CalendarMonth> {
                             ),
                           ),
                         ),
+                        ListView(
+                          scrollDirection: Axis.vertical,
+                          shrinkWrap: true,
+                          children: [
+                            ListTile(
+                                title: Center(
+                                    child: Text(DateFormat('hh:mm')
+                                        .format(meeting.from)))),
+                            ListTile(
+                                title: Center(
+                                    child: Text(DateFormat('hh:mm')
+                                        .format(meeting.to)))),
+                            ListTile(
+                                title: Column(
+                              children: [
+                                Text("Recurrence?"),
+                                Checkbox(
+                                    value: true,
+                                    onChanged: (bool? newValue) {
+                                      setState(() {});
+                                    })
+                              ],
+                            ))
+                          ],
+                        ),
                         Container(
                           padding: const EdgeInsets.all(4.0),
                           decoration: const BoxDecoration(
@@ -259,46 +284,3 @@ class _CalendarMonth extends State<CalendarMonth> {
     return appointments != null && appointments.isNotEmpty;
   }
 }
-
-
-/*
-ListView.builder(
-              itemCount: selectedDayAppointments.length,
-              itemBuilder: (context, index) {
-                final meeting = selectedDayAppointments[index];
-                return Dismissible(
-                    key: Key(index.toString()),
-                    background: Container(
-                      color: Colors.green,
-                      child: const Align(
-                        alignment: Alignment.centerLeft,
-                        child: Icon(Icons.edit),
-                      ),
-                    ),
-                    secondaryBackground: Container(
-                      color: Colors.red,
-                      child: const Align(
-                        alignment: Alignment.centerRight,
-                        child: Icon(Icons.delete),
-                      ),
-                    ),
-                    onDismissed: (direction) {
-                      if (direction == DismissDirection.startToEnd) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(content: Text("$index item saved")));
-                      } else {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(content: Text("$index item deleted")));
-                      }
-                    },
-                    child: CheckboxListTile(
-                      title: Text(meeting.eventName),
-                      value: meeting.isDone,
-                      controlAffinity: ListTileControlAffinity.leading,
-                      onChanged: (bool? value) {
-                        _onCheckboxChanged(index, value ?? false);
-                      },
-                    ));
-              },
-            ),
- */

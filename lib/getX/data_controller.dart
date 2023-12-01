@@ -138,13 +138,19 @@ class MeetingDataSource extends CalendarDataSource {
       result.add(item2.eventName == "" ? item1 : item2);
     }
     appointments = result;
+
+    notifyListeners(CalendarDataSourceAction.reset, appointments!);
   }
 
   void addMeetingData(dynamic newData) {
     appointments!.add(newData);
+
+    notifyListeners(CalendarDataSourceAction.reset, appointments!);
   }
 
   void deleteMeetingData(dynamic data) {
     appointments!.removeWhere((element) => element == data);
+
+    notifyListeners(CalendarDataSourceAction.reset, appointments!);
   }
 }
