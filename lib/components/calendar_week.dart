@@ -49,16 +49,274 @@ class _CalendarWeek extends State<CalendarWeek> {
         );
         meeting = cvrt;
       }
-      showDialog(
-          context: context,
-          builder: (BuildContext context) {
-            return Dialog(child: Text(meeting.eventName));
-          });
+      _editMeeting(meeting);
     }
 
     if (details.appointments == null) {
       _addMeeting(details);
     }
+  }
+
+  void _editMeeting(Meeting meeting) {
+    TimeOfDay startedTime = TimeOfDay(hour: meeting.from.hour, minute: meeting.from.minute);
+    TimeOfDay endedTime = TimeOfDay(hour: meeting.to.hour, minute: meeting.to.minute);
+
+    String startTime = '${startedTime.hour.toString().padLeft(2, '0')}:${startedTime.minute.toString().padLeft(2, '0')}';
+    String endTime = '${endedTime.hour.toString().padLeft(2, '0')}:${endedTime.minute.toString().padLeft(2, '0')}';
+
+    void showTimePicker(index, setInnerState) async {
+      final pickedTime = await showSpinnerTimePicker(context,
+          title: 'Edit ${index == 1 ? 'Start' : 'End'} Time',
+          height: 100,
+          width: 70,
+          spinnerBgColor: Colors.grey,
+          spinnerHeight: 100,
+          spinnerWidth: 50,
+          backgroundColor: Colors.yellow[50],
+          selectedTextStyle: const TextStyle(color: Colors.black, fontSize: 30),
+          nonSelectedTextStyle: TextStyle(color: Colors.grey[700], fontSize: 30),
+          titleStyle: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+          buttonStyle: ButtonStyle(backgroundColor: MaterialStateProperty.all(Colors.transparent)),
+          buttonTextStyle: const TextStyle(fontSize: 16, color: Colors.transparent),
+          barrierDismissible: true,
+          initTime: index == 1 ? startedTime : endedTime);
+      if (pickedTime != null) {
+        setState(() {
+          if (index == 1) {
+            startedTime = pickedTime;
+          } else {
+            endedTime = pickedTime;
+          }
+        });
+        setInnerState(() {
+          startTime = '${startedTime.hour.toString().padLeft(2, '0')}:${startedTime.minute.toString().padLeft(2, '0')}';
+          endTime = '${endedTime.hour.toString().padLeft(2, '0')}:${endedTime.minute.toString().padLeft(2, '0')}';
+        });
+      }
+    }
+
+    final recurSelect = ['NONE', 'DAILY', 'WEEKLY', 'MONTHLY', 'YEARLY'];
+    var selectedRecur = meeting.recurrenceRule == null ? 'NONE' : meeting.recurrenceRule!.split(';')[0].substring(5);
+
+    showDialog(
+        context: context,
+        builder: (BuildContext buildContext) {
+          return Dialog(
+              backgroundColor: Colors.transparent,
+              insetPadding: const EdgeInsets.all(10),
+              child: SizedBox(
+                width: 30,
+                height: 450,
+                child: DecoratedBox(
+                    decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(15)),
+                    child: StatefulBuilder(
+                      builder: (BuildContext context, StateSetter setInnerState) {
+                        return Column(
+                          mainAxisAlignment: MainAxisAlignment.spaceAround,
+                          crossAxisAlignment: CrossAxisAlignment.center,
+                          children: [
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceAround,
+                              crossAxisAlignment: CrossAxisAlignment.center,
+                              children: [
+                                Container(
+                                    padding: const EdgeInsets.fromLTRB(10, 15, 0, 10),
+                                    child: RichText(
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      text: TextSpan(
+                                        text: '${meeting.eventName} (${meeting.from.day}/${meeting.from.month}/${meeting.from.year})',
+                                        style: const TextStyle(
+                                            fontStyle: FontStyle.italic,
+                                            fontSize: 15,
+                                            fontWeight: FontWeight.bold,
+                                            height: 1.5,
+                                            shadows: [Shadow(color: Colors.black, offset: Offset(0, -5))],
+                                            color: Colors.transparent,
+                                            decoration: TextDecoration.underline,
+                                            decorationColor: Colors.black,
+                                            decorationStyle: TextDecorationStyle.double,
+                                            decorationThickness: 1.5),
+                                      ),
+                                      textAlign: TextAlign.center,
+                                    )),
+                                SizedBox(
+                                  width: 25,
+                                  height: 25,
+                                  child: DecoratedBox(
+                                    decoration: BoxDecoration(
+                                        borderRadius: BorderRadius.circular(30.0),
+                                        gradient: const LinearGradient(
+                                          begin: Alignment.topRight,
+                                          end: Alignment.bottomLeft,
+                                          colors: [
+                                            Color.fromARGB(255, 213, 213, 213),
+                                            Color.fromARGB(255, 234, 231, 231),
+                                          ],
+                                        )),
+                                    child: FloatingActionButton.small(
+                                      shape: const CircleBorder(),
+                                      backgroundColor: Colors.transparent,
+                                      onPressed: () {
+                                        setState(() {
+                                          Navigator.of(context, rootNavigator: true).pop();
+                                        });
+                                      },
+                                      child: const Text("X", style: TextStyle(fontWeight: FontWeight.bold, color: Colors.black)),
+                                    ),
+                                  ),
+                                )
+                              ],
+                            ),
+                            ListView(
+                              scrollDirection: Axis.vertical,
+                              shrinkWrap: true,
+                              children: [
+                                const Text(
+                                  "Starts At",
+                                  textAlign: TextAlign.center,
+                                  style: TextStyle(fontWeight: FontWeight.bold),
+                                ),
+                                Padding(
+                                  padding: const EdgeInsets.fromLTRB(50, 5, 50, 15),
+                                  child: SizedBox(
+                                      width: 20,
+                                      height: 40,
+                                      child: DecoratedBox(
+                                        decoration: BoxDecoration(
+                                          borderRadius: BorderRadius.circular(15),
+                                          gradient: const LinearGradient(
+                                            begin: Alignment.topRight,
+                                            end: Alignment.bottomLeft,
+                                            colors: [
+                                              Color.fromARGB(255, 213, 213, 213),
+                                              Color.fromARGB(255, 234, 231, 231),
+                                            ],
+                                          ),
+                                        ),
+                                        child: FloatingActionButton(
+                                          backgroundColor: Colors.transparent,
+                                          onPressed: () {
+                                            showTimePicker(1, setInnerState);
+                                          },
+                                          child: Text(
+                                            startTime,
+                                            style: const TextStyle(color: Colors.black),
+                                          ),
+                                        ),
+                                      )),
+                                ),
+                                const Text(
+                                  "Ends At",
+                                  textAlign: TextAlign.center,
+                                  style: TextStyle(fontWeight: FontWeight.bold),
+                                ),
+                                Padding(
+                                  padding: const EdgeInsets.fromLTRB(50, 5, 50, 15),
+                                  child: SizedBox(
+                                      width: 20,
+                                      height: 40,
+                                      child: DecoratedBox(
+                                        decoration: BoxDecoration(
+                                          borderRadius: BorderRadius.circular(15),
+                                          gradient: const LinearGradient(
+                                            begin: Alignment.topRight,
+                                            end: Alignment.bottomLeft,
+                                            colors: [
+                                              Color.fromARGB(255, 213, 213, 213),
+                                              Color.fromARGB(255, 234, 231, 231),
+                                            ],
+                                          ),
+                                        ),
+                                        child: FloatingActionButton(
+                                          backgroundColor: Colors.transparent,
+                                          onPressed: () {
+                                            showTimePicker(2, setInnerState);
+                                          },
+                                          child: Text(
+                                            endTime,
+                                            style: const TextStyle(color: Colors.black),
+                                          ),
+                                        ),
+                                      )),
+                                ),
+                                const Text(
+                                  "Recurring...",
+                                  textAlign: TextAlign.center,
+                                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                                ),
+                                Padding(
+                                    padding: const EdgeInsets.fromLTRB(5, 0, 10, 10),
+                                    child: Center(
+                                      child: DropdownButton(
+                                        alignment: Alignment.center,
+                                        value: selectedRecur,
+                                        items: recurSelect.map((e) {
+                                          return DropdownMenuItem(
+                                            value: e,
+                                            child: Text(e),
+                                          );
+                                        }).toList(),
+                                        onChanged: (e) {
+                                          setInnerState(() {
+                                            selectedRecur = e!;
+                                          });
+                                          setState(() {
+                                            selectedRecur = e!;
+                                          });
+                                        },
+                                      ),
+                                    )),
+                              ],
+                            ),
+                            Container(
+                              padding: const EdgeInsets.fromLTRB(10, 10, 10, 10),
+                              decoration: BoxDecoration(shape: BoxShape.rectangle, color: Colors.red, borderRadius: BorderRadius.circular(15.0)),
+                              child: GestureDetector(
+                                  child: const Text(
+                                    "Delete",
+                                    style: TextStyle(color: Colors.white),
+                                    textAlign: TextAlign.center,
+                                  ),
+                                  onTap: () {
+                                    setState(() {
+                                      dataController.mMeetings.appointments!.removeWhere((element) => element.id == meeting.id);
+                                      dataController.mMeetings.notifyListeners(CalendarDataSourceAction.remove, <Meeting>[meeting]);
+
+                                      Navigator.pop(context);
+                                    });
+                                  }),
+                            ),
+                            Container(
+                              padding: const EdgeInsets.fromLTRB(10, 10, 10, 10),
+                              decoration: BoxDecoration(shape: BoxShape.rectangle, color: Colors.green, borderRadius: BorderRadius.circular(15.0)),
+                              child: GestureDetector(
+                                  child: const Text(
+                                    "Confirm",
+                                    style: TextStyle(color: Colors.white),
+                                    textAlign: TextAlign.center,
+                                  ),
+                                  onTap: () {
+                                    _calculateRecurrence(selectedRecur, meeting);
+                                    setState(() {
+                                      final editStartTime =
+                                          DateTime(meeting.from.year, meeting.from.month, meeting.from.day, startedTime.hour, startedTime.minute);
+                                      meeting.from = editStartTime;
+
+                                      final editEndTime = DateTime(meeting.to.year, meeting.to.month, meeting.to.day, endedTime.hour, endedTime.minute);
+                                      meeting.to = editEndTime;
+                                      dataController.updateMeeting(meeting);
+
+                                      Navigator.pop(context);
+                                    });
+                                  }),
+                            ),
+                          ],
+                        );
+                      },
+                    )),
+              ));
+        });
   }
 
   void _addMeeting(details) {
