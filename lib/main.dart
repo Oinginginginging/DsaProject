@@ -57,7 +57,7 @@ class _MyHomePageState extends State<MyHomePage> {
         title = 'Monthly Views';
         break;
       case 1:
-        page = const CalendarWeek();
+        page = CalendarWeek(dataController);
         title = 'Weekly Views';
         break;
       case 2:
@@ -92,12 +92,9 @@ class _MyHomePageState extends State<MyHomePage> {
         onTap: _onItemTapped,
         currentIndex: selectedIndex,
         items: const <BottomNavigationBarItem>[
-          BottomNavigationBarItem(
-              icon: Icon(Icons.calendar_month), label: 'Month'),
-          BottomNavigationBarItem(
-              icon: Icon(Icons.calendar_view_week_outlined), label: 'Week'),
-          BottomNavigationBarItem(
-              icon: Icon(Icons.calendar_today_rounded), label: 'Daily'),
+          BottomNavigationBarItem(icon: Icon(Icons.calendar_month), label: 'Month'),
+          BottomNavigationBarItem(icon: Icon(Icons.calendar_view_week_outlined), label: 'Week'),
+          BottomNavigationBarItem(icon: Icon(Icons.calendar_today_rounded), label: 'Daily'),
         ], // This trailing comma makes auto-formatting nicer for build methods.
       ),
     );

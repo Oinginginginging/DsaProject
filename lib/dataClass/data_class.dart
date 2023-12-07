@@ -2,10 +2,19 @@ import 'package:flutter/material.dart';
 
 class Meeting {
   /// Creates a meeting class with required details.
-  Meeting(this.eventName, this.from, this.to, this.background, this.isAllDay,
-      {this.isDone = false,
+  Meeting(
+      {required this.id,
+      this.eventName = '',
+      required this.from,
+      required this.to,
+      this.color = Colors.white,
+      this.isAllDay = false,
+      this.recurrenceRule,
+      this.isDone = false,
       this.category = 'None',
       this.showTriangularMark = false});
+
+  int id;
 
   /// Event name which is equivalent to subject property of [Appointment].
   String eventName;
@@ -17,7 +26,9 @@ class Meeting {
   DateTime to;
 
   /// Background which is equivalent to color property of [Appointment].
-  Color background;
+  Color color;
+
+  String? recurrenceRule;
 
   /// IsAllDay which is equivalent to isAllDay property of [Appointment].
   bool isAllDay;
@@ -30,11 +41,13 @@ class Meeting {
 
   Meeting copyWith({bool? isDone}) {
     return Meeting(
-      eventName,
-      from,
-      to,
-      background,
-      isAllDay,
+      id: id,
+      eventName: eventName,
+      from: from,
+      to: to,
+      color: color,
+      isAllDay: isAllDay,
+      recurrenceRule: recurrenceRule,
       isDone: isDone ?? this.isDone,
     );
   }
