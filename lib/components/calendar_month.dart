@@ -1,3 +1,4 @@
+import 'package:get/get.dart';
 import 'package:intl/intl.dart';
 import 'package:prototype/getX/data_controller.dart';
 import 'package:syncfusion_flutter_calendar/calendar.dart';
@@ -675,7 +676,12 @@ class _CalendarMonth extends State<CalendarMonth> {
       case 'NONE':
         setState(() {
           meeting.recurrenceRule = null;
-          dataController.updateMeeting(meeting);
+          if (!dataController.mMeetings.appointments!.contains(meeting)) {
+            dataController.mMeetings.appointments!.add(meeting);
+          } else {
+            dataController.updateMeeting(meeting);
+          }
+
           selectedDayAppointments = dataController.mMeetings.appointments!.where((e) => e.from.day == meeting.from.day && e.from.hour <= 24).toList();
         });
         break;
@@ -684,17 +690,10 @@ class _CalendarMonth extends State<CalendarMonth> {
           final RecurrenceProperties recProperties = RecurrenceProperties(startDate: meeting.from, recurrenceRange: RecurrenceRange.count, recurrenceCount: 60);
           meeting.recurrenceRule = SfCalendar.generateRRule(recProperties, meeting.from, meeting.to);
 
-          dataController.updateMeeting(meeting);
-
-          List<DateTime> dateCollection = SfCalendar.getRecurrenceDateTimeCollection(
-            meeting.recurrenceRule.toString(),
-            meeting.from,
-          );
-          List<Meeting> recList = [];
-          for (DateTime element in dateCollection) {
-            final date = DateTime(element.year, element.month, element.day, meeting.to.hour, meeting.to.minute);
-            final meet = Meeting(id: meeting.id, eventName: meeting.eventName, from: element, to: date, color: meeting.color);
-            recList.add(meet);
+          if (!dataController.mMeetings.appointments!.contains(meeting)) {
+            dataController.mMeetings.appointments!.add(meeting);
+          } else {
+            dataController.updateMeeting(meeting);
           }
           selectedDayAppointments = dataController.mMeetings.appointments!.where((e) => e.from.day == meeting.from.day <= 24).toList();
         });
@@ -708,7 +707,11 @@ class _CalendarMonth extends State<CalendarMonth> {
             weekDays: [getWeekDays(meeting.from.weekday)],
           );
           meeting.recurrenceRule = SfCalendar.generateRRule(recProperties, meeting.from, meeting.to);
-          dataController.updateMeeting(meeting);
+          if (!dataController.mMeetings.appointments!.contains(meeting)) {
+            dataController.mMeetings.appointments!.add(meeting);
+          } else {
+            dataController.updateMeeting(meeting);
+          }
           selectedDayAppointments =
               dataController.mMeetings.appointments!.where((e) => e.from.day == selectedDayAppointments[0].from.day && e.from.hour <= 24).toList();
         });
@@ -719,7 +722,11 @@ class _CalendarMonth extends State<CalendarMonth> {
           final RecurrenceProperties recProperties =
               RecurrenceProperties(startDate: meeting.from, recurrenceType: type, recurrenceCount: 20, dayOfMonth: meeting.from.day);
           meeting.recurrenceRule = SfCalendar.generateRRule(recProperties, meeting.from, meeting.to);
-          dataController.updateMeeting(meeting);
+          if (!dataController.mMeetings.appointments!.contains(meeting)) {
+            dataController.mMeetings.appointments!.add(meeting);
+          } else {
+            dataController.updateMeeting(meeting);
+          }
           selectedDayAppointments =
               dataController.mMeetings.appointments!.where((e) => e.from.day == selectedDayAppointments[0].from.day && e.from.hour <= 24).toList();
         });
@@ -730,7 +737,11 @@ class _CalendarMonth extends State<CalendarMonth> {
           final RecurrenceProperties recProperties =
               RecurrenceProperties(startDate: meeting.from, recurrenceType: type, month: meeting.from.month, dayOfMonth: meeting.from.day);
           meeting.recurrenceRule = SfCalendar.generateRRule(recProperties, meeting.from, meeting.to);
-          dataController.updateMeeting(meeting);
+          if (!dataController.mMeetings.appointments!.contains(meeting)) {
+            dataController.mMeetings.appointments!.add(meeting);
+          } else {
+            dataController.updateMeeting(meeting);
+          }
           selectedDayAppointments =
               dataController.mMeetings.appointments!.where((e) => e.from.day == selectedDayAppointments[0].from.day && e.from.hour <= 24).toList();
         });
@@ -800,7 +811,6 @@ class _CalendarMonth extends State<CalendarMonth> {
               appointment.startTime.year, appointment.startTime.month, appointment.startTime.day, appointment.startTime.hour, appointment.startTime.minute),
           to: DateTime(appointment.endTime.year, appointment.endTime.month, appointment.endTime.day, appointment.endTime.hour, appointment.endTime.minute),
           color: appointment.color,
-          recurrenceRule: appointment.recurrenceRule,
         );
         if (!recurringAppointments.contains(recurringAppointment)) {
           recurringAppointments.add(recurringAppointment);
