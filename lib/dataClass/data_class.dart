@@ -10,6 +10,7 @@ class Meeting {
       this.color = Colors.white,
       this.isAllDay = false,
       this.recurrenceRule,
+      this.recurrenceExceptionDates,
       this.isDone = false,
       this.category = 'None',
       this.showTriangularMark = false});
@@ -39,6 +40,8 @@ class Meeting {
 
   String category;
 
+  List<DateTime>? recurrenceExceptionDates;
+
   Meeting copyWith({bool? isDone}) {
     return Meeting(
       id: id,
@@ -49,6 +52,7 @@ class Meeting {
       isAllDay: isAllDay,
       recurrenceRule: recurrenceRule,
       isDone: isDone ?? this.isDone,
+      recurrenceExceptionDates: recurrenceExceptionDates,
     );
   }
 }

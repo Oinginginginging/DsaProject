@@ -41,7 +41,7 @@ class _CalendarWeek extends State<CalendarWeek> {
       dynamic meeting = details.appointments![0];
       if (meeting is Appointment) {
         final cvrt = Meeting(
-          id: int.parse(meeting.id.toString()),
+          id: dataController.mMeetings.appointments!.firstWhere((element) => element.eventName == meeting.subject).id,
           eventName: meeting.subject,
           from: meeting.startTime,
           to: meeting.endTime,
@@ -279,12 +279,54 @@ class _CalendarWeek extends State<CalendarWeek> {
                                     textAlign: TextAlign.center,
                                   ),
                                   onTap: () {
-                                    setState(() {
-                                      dataController.mMeetings.appointments!.removeWhere((element) => element.id == meeting.id);
-                                      dataController.mMeetings.notifyListeners(CalendarDataSourceAction.remove, <Meeting>[meeting]);
+                                    if (meeting.recurrenceRule != null) {
+                                      showDialog(
+                                          context: context,
+                                          builder: (BuildContext context) {
+                                            return AlertDialog(
+                                              title: const Text("Would you like to delete the whole recurring event?"),
+                                              actions: [
+                                                TextButton(
+                                                    onPressed: () {
+                                                      setState(() {
+                                                        Meeting originalMeeting =
+                                                            dataController.mMeetings.appointments!.firstWhere((element) => element.id == meeting.id);
+                                                        dataController.mMeetings.appointments!.remove(originalMeeting);
+                                                        dataController.mMeetings.notifyListeners(CalendarDataSourceAction.remove, <Meeting>[originalMeeting]);
 
-                                      Navigator.pop(context);
-                                    });
+                                                        Navigator.pop(context);
+                                                        Navigator.pop(context);
+                                                      });
+                                                    },
+                                                    child: const Text("Yes")),
+                                                TextButton(
+                                                    onPressed: () {
+                                                      Meeting originalMeeting =
+                                                          dataController.mMeetings.appointments!.firstWhere((element) => element.id == meeting.id);
+
+                                                      originalMeeting.recurrenceExceptionDates == null
+                                                          ? originalMeeting.recurrenceExceptionDates = [meeting.from]
+                                                          : originalMeeting.recurrenceExceptionDates!.add(meeting.from);
+                                                      print(originalMeeting.recurrenceExceptionDates);
+                                                      setState(() {
+                                                        dataController.updateMeeting(originalMeeting);
+                                                        Navigator.pop(context);
+                                                        Navigator.pop(context);
+                                                      });
+                                                    },
+                                                    child: const Text("Only This")),
+                                              ],
+                                            );
+                                          });
+                                    } else {
+                                      setState(() {
+                                        dataController.mMeetings.appointments!.removeWhere((element) => element.id == meeting.id);
+                                        dataController.mMeetings.notifyListeners(CalendarDataSourceAction.remove, <Meeting>[meeting]);
+
+                                        Navigator.pop(context);
+                                      });
+                                    }
+                                    setState(() {});
                                   }),
                             ),
                             Container(
@@ -320,8 +362,8 @@ class _CalendarWeek extends State<CalendarWeek> {
   }
 
   void _addMeeting(details) {
-    TimeOfDay startedTime = TimeOfDay(hour: details.date!.hour, minute: details.date!.minute);
-    TimeOfDay endedTime = TimeOfDay(hour: details.date!.hour + 1, minute: details.date!.minute);
+    TimeOfDay startedTime = TimeOfDay.now();
+    TimeOfDay endedTime = TimeOfDay.now();
 
     String startTime = '${startedTime.hour.toString().padLeft(2, '0')}:${startedTime.minute.toString().padLeft(2, '0')}';
     String endTime = '${endedTime.hour.toString().padLeft(2, '0')}:${endedTime.minute.toString().padLeft(2, '0')}';
@@ -607,7 +649,7 @@ class _CalendarWeek extends State<CalendarWeek> {
                                 onTap: () {
                                   final Meeting newMeeting = Meeting(
                                     eventName: textController.text,
-                                    id: dataController.mMeetings.appointments!.length,
+                                    id: dataController.mMeetings.appointments!.length + 1,
                                     from: DateTime(selectedDate.year, selectedDate.month, selectedDate.day, startedTime.hour, startedTime.minute),
                                     to: DateTime(selectedDate.year, selectedDate.month, selectedDate.day, endedTime.hour, endedTime.minute),
                                     color: color,

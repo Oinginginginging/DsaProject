@@ -1,4 +1,3 @@
-import 'package:get/get.dart';
 import 'package:intl/intl.dart';
 import 'package:prototype/getX/data_controller.dart';
 import 'package:syncfusion_flutter_calendar/calendar.dart';
@@ -57,7 +56,7 @@ class _CalendarMonth extends State<CalendarMonth> {
           ),
         FloatingActionButton(
           onPressed: _addMeeting,
-          child: Icon(Icons.add),
+          child: const Icon(Icons.add),
         ),
       ],
     );
@@ -110,7 +109,7 @@ class _CalendarMonth extends State<CalendarMonth> {
     final recurSelect = ['NONE', 'DAILY', 'WEEKLY', 'MONTHLY', 'YEARLY'];
     var selectedRecur = recurrenceRule == 'NONE' ? 'NONE' : recurrenceRule.split(';')[0].substring(5);
 
-    Color color = Color.fromARGB(255, 228, 126, 126);
+    Color color = const Color.fromARGB(255, 228, 126, 126);
 
     showDialog(
         context: context,
@@ -351,7 +350,7 @@ class _CalendarMonth extends State<CalendarMonth> {
                                 onTap: () {
                                   final Meeting newMeeting = Meeting(
                                     eventName: textController.text,
-                                    id: dataController.mMeetings.appointments!.length,
+                                    id: dataController.mMeetings.appointments!.length + 1,
                                     from: DateTime(selectedDate.year, selectedDate.month, selectedDate.day, startedTime.hour, startedTime.minute),
                                     to: DateTime(selectedDate.year, selectedDate.month, selectedDate.day, endedTime.hour, endedTime.minute),
                                     color: color,
@@ -606,15 +605,58 @@ class _CalendarMonth extends State<CalendarMonth> {
                                     textAlign: TextAlign.center,
                                   ),
                                   onTap: () {
-                                    setState(() {
-                                      dataController.mMeetings.appointments!.removeWhere((element) => element.id == meeting.id);
-                                      dataController.mMeetings.notifyListeners(CalendarDataSourceAction.remove, <Meeting>[meeting]);
+                                    if (meeting.recurrenceRule != null) {
+                                      showDialog(
+                                          context: context,
+                                          builder: (BuildContext context) {
+                                            return AlertDialog(
+                                              title: const Text("Would you like to delete the whole recurring event?"),
+                                              actions: [
+                                                TextButton(
+                                                    onPressed: () {
+                                                      setState(() {
+                                                        Meeting originalMeeting =
+                                                            dataController.mMeetings.appointments!.firstWhere((element) => element.id == meeting.id);
+                                                        dataController.mMeetings.appointments!.remove(originalMeeting);
+                                                        dataController.mMeetings.notifyListeners(CalendarDataSourceAction.remove, <Meeting>[originalMeeting]);
+                                                        selectedDayAppointments = dataController.mMeetings.appointments!
+                                                            .where((e) => e.from.day == selectedDayAppointments[0].from.day && e.from.hour <= 24)
+                                                            .toList();
+                                                        Navigator.pop(context);
+                                                        Navigator.pop(context);
+                                                      });
+                                                    },
+                                                    child: const Text("Yes")),
+                                                TextButton(
+                                                    onPressed: () {
+                                                      Meeting originalMeeting =
+                                                          dataController.mMeetings.appointments!.firstWhere((element) => element.id == meeting.id);
 
-                                      selectedDayAppointments = dataController.mMeetings.appointments!
-                                          .where((e) => e.from.day == selectedDayAppointments[0].from.day && e.from.hour <= 24)
-                                          .toList();
-                                      Navigator.pop(context, selectedDayAppointments);
-                                    });
+                                                      originalMeeting.recurrenceExceptionDates == null
+                                                          ? originalMeeting.recurrenceExceptionDates = [meeting.from]
+                                                          : originalMeeting.recurrenceExceptionDates!.add(meeting.from);
+                                                      print(originalMeeting.recurrenceExceptionDates);
+                                                      setState(() {
+                                                        dataController.updateMeeting(originalMeeting);
+                                                        Navigator.pop(context);
+                                                        Navigator.pop(context);
+                                                      });
+                                                    },
+                                                    child: const Text("Only This")),
+                                              ],
+                                            );
+                                          });
+                                    } else {
+                                      setState(() {
+                                        dataController.mMeetings.appointments!.removeWhere((element) => element.id == meeting.id);
+                                        dataController.mMeetings.notifyListeners(CalendarDataSourceAction.remove, <Meeting>[meeting]);
+                                        selectedDayAppointments = dataController.mMeetings.appointments!
+                                            .where((e) => e.from.day == selectedDayAppointments[0].from.day && e.from.hour <= 24)
+                                            .toList();
+                                        Navigator.pop(context, selectedDayAppointments);
+                                      });
+                                    }
+                                    setState(() {});
                                   }),
                             ),
                             Container(
@@ -712,8 +754,7 @@ class _CalendarMonth extends State<CalendarMonth> {
           } else {
             dataController.updateMeeting(meeting);
           }
-          selectedDayAppointments =
-              dataController.mMeetings.appointments!.where((e) => e.from.day == selectedDayAppointments[0].from.day && e.from.hour <= 24).toList();
+          selectedDayAppointments = dataController.mMeetings.appointments!.where((e) => e.from.day == meeting.from.day && e.from.hour <= 24).toList();
         });
         break;
       case 'MONTHLY':
@@ -727,8 +768,7 @@ class _CalendarMonth extends State<CalendarMonth> {
           } else {
             dataController.updateMeeting(meeting);
           }
-          selectedDayAppointments =
-              dataController.mMeetings.appointments!.where((e) => e.from.day == selectedDayAppointments[0].from.day && e.from.hour <= 24).toList();
+          selectedDayAppointments = dataController.mMeetings.appointments!.where((e) => e.from.day == meeting.from.day && e.from.hour <= 24).toList();
         });
         break;
       case 'YEARLY':
@@ -742,8 +782,7 @@ class _CalendarMonth extends State<CalendarMonth> {
           } else {
             dataController.updateMeeting(meeting);
           }
-          selectedDayAppointments =
-              dataController.mMeetings.appointments!.where((e) => e.from.day == selectedDayAppointments[0].from.day && e.from.hour <= 24).toList();
+          selectedDayAppointments = dataController.mMeetings.appointments!.where((e) => e.from.day == meeting.from.day && e.from.hour <= 24).toList();
         });
         break;
     }
@@ -805,12 +844,13 @@ class _CalendarMonth extends State<CalendarMonth> {
     for (var appointment in appointments) {
       if (appointment is Appointment) {
         final recurringAppointment = Meeting(
-          id: int.parse(appointment.id.toString()),
+          id: dataController.mMeetings.appointments!.firstWhere((element) => element.eventName == appointment.subject).id,
           eventName: appointment.subject,
           from: DateTime(
               appointment.startTime.year, appointment.startTime.month, appointment.startTime.day, appointment.startTime.hour, appointment.startTime.minute),
           to: DateTime(appointment.endTime.year, appointment.endTime.month, appointment.endTime.day, appointment.endTime.hour, appointment.endTime.minute),
           color: appointment.color,
+          recurrenceRule: appointment.recurrenceRule,
         );
         if (!recurringAppointments.contains(recurringAppointment)) {
           recurringAppointments.add(recurringAppointment);

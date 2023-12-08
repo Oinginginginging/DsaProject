@@ -9,6 +9,7 @@ class DataController extends GetxController {
 
   void updateMeeting(dynamic newData) {
     mMeetings.updateMeetingData(newData);
+    print(newData.recurrenceExceptionDates);
     update();
   }
 }
@@ -87,6 +88,11 @@ class MeetingDataSource extends CalendarDataSource {
   @override
   String? getRecurrenceRule(int index) {
     return appointments![index].recurrenceRule;
+  }
+
+  @override
+  List<DateTime>? getRecurrenceExceptionDates(int index) {
+    return appointments![index].recurrenceExceptionDates;
   }
 
   String getCategory(int index) {
