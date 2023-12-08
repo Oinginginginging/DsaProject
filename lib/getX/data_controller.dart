@@ -9,7 +9,6 @@ class DataController extends GetxController {
 
   void updateMeeting(dynamic newData) {
     mMeetings.updateMeetingData(newData);
-    print(newData.recurrenceExceptionDates);
     update();
   }
 }
@@ -127,11 +126,12 @@ class MeetingDataSource extends CalendarDataSource {
 
   void updateMeetingData(dynamic newData) {
     List<dynamic> result = [];
-
     for (var item1 in appointments!) {
       String eventName1 = item1.eventName;
-
-      if (eventName1 == newData.eventName) {
+      int id1 = item1.id;
+      print(eventName1 == newData.eventName);
+      print('');
+      if (eventName1 == newData.eventName && id1 == newData.id) {
         result.add(newData);
       } else {
         result.add(item1);

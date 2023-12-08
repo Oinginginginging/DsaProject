@@ -1,9 +1,10 @@
 import 'package:syncfusion_flutter_calendar/calendar.dart';
 import 'package:flutter/material.dart';
-import 'package:prototype/getX/data_controller.dart';
+import '../getX/data_controller.dart';
 import 'package:prototype/dataClass/data_class.dart';
 import 'package:flutter_spinner_time_picker/flutter_spinner_time_picker.dart';
 import 'package:flutter_colorpicker/flutter_colorpicker.dart';
+import 'dart:math';
 
 class CalendarWeek extends StatefulWidget {
   final DataController dataController;
@@ -12,52 +13,99 @@ class CalendarWeek extends StatefulWidget {
 
   @override
   State<CalendarWeek> createState() => _CalendarWeek();
-} //createState(): State 객체를 반환, stateful widget 처음 생성되는 순간에만 호출
+}
 
 class _CalendarWeek extends State<CalendarWeek> {
-  /*DateTime? dragStart;
-  DateTime? dragEnd;
-  List<Meeting> meetings = [];*/
   late DataController dataController;
+
+  final CalendarController calendarController = CalendarController();
+
+  List<Appointment> convertToCalendarAppointment(List<dynamic> newdata) {
+    List<Appointment> appointments = <Appointment>[];
+    for (var meeting in newdata) {
+      appointments.add(Appointment(
+        startTime: meeting.from,
+        endTime: meeting.to,
+        recurrenceRule: meeting.recurrenceRule,
+        recurrenceExceptionDates: meeting.recurrenceExceptionDates,
+        id: dataController.mMeetings.appointments!.firstWhere((element) => element.eventName == meeting.eventName).id,
+        isAllDay: meeting.isAllDay,
+        subject: meeting.eventName,
+        color: meeting.color,
+      ));
+    }
+
+    return appointments;
+  }
 
   @override
   Widget build(BuildContext context) {
     dataController = widget.dataController;
-    return SfCalendar(
+    return SafeArea(
+        child: SfCalendar(
+      controller: calendarController,
       showNavigationArrow: true,
+      onTap: _onTappedEvent,
       view: CalendarView.week,
-      allowDragAndDrop: true,
-      onDragEnd: (AppointmentDragEndDetails details) {
-        // details에서 필요한 정보 추출
-        dynamic appointment = details.appointment!;
-        DateTime? draggingTime = details.droppingTime;
-
-        // 드래그된 시간이 존재하는 경우에만 실행
-        if (draggingTime != null) {
-          // 새로운 드래그된 시간으로 일정을 업데이트
-          setState(() {
-            appointment.from = draggingTime;
-            appointment.to = draggingTime.add(appointment.to.difference(appointment.from));
-          });
-        }
-      },
       timeSlotViewSettings: const TimeSlotViewSettings(
-          timeInterval: Duration(minutes: 30),
+          timeInterval: Duration(minutes: 60),
           timeIntervalHeight: -1,
           timeFormat: 'HH:mm',
           dayFormat: 'EEE',
           timeRulerSize: 40,
           timeTextStyle: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
-      dataSource: dataController.mMeetings,
-      monthViewSettings: const MonthViewSettings(appointmentDisplayMode: MonthAppointmentDisplayMode.appointment),
-      onTap: _onTappedEvent,
-    );
+      dataSource: _DataSource(convertToCalendarAppointment(dataController.mMeetings.appointments!)),
+      allowDragAndDrop: true,
+      allowAppointmentResize: true,
+      dragAndDropSettings: const DragAndDropSettings(
+        allowNavigation: true,
+        allowScroll: true,
+        showTimeIndicator: true,
+        autoNavigateDelay: Duration(seconds: 1),
+        indicatorTimeFormat: 'HH:mm a',
+        timeIndicatorStyle: TextStyle(
+          backgroundColor: Color(0xFFCEE5D0),
+          color: Colors.black,
+          fontSize: 15,
+        ),
+      ),
+      onDragEnd: dragEnd,
+      onAppointmentResizeEnd: resizeEnd,
+    ));
+  }
+
+  void dragEnd(AppointmentDragEndDetails appointmentDragEndDetails) {
+    Appointment meeting = appointmentDragEndDetails.appointment as Appointment;
+    final cvrt = Meeting(
+        id: dataController.mMeetings.appointments!.firstWhere((element) => element.eventName == meeting.subject).id,
+        eventName: meeting.subject,
+        from: meeting.startTime,
+        to: meeting.endTime,
+        recurrenceRule: meeting.recurrenceRule,
+        color: meeting.color,
+        recurrenceExceptionDates: meeting.recurrenceExceptionDates);
+    print(cvrt.id);
+    dataController.mMeetings.updateMeetingData(cvrt);
+  }
+
+  void resizeEnd(AppointmentResizeEndDetails appointmentResizeEndDetails) {
+    Appointment meeting = appointmentResizeEndDetails.appointment as Appointment;
+    final cvrt = Meeting(
+        id: dataController.mMeetings.appointments!.firstWhere((element) => element.eventName == meeting.subject).id,
+        eventName: meeting.subject,
+        from: meeting.startTime,
+        to: meeting.endTime,
+        recurrenceRule: meeting.recurrenceRule,
+        color: meeting.color,
+        recurrenceExceptionDates: meeting.recurrenceExceptionDates);
+    dataController.mMeetings.updateMeetingData(cvrt);
   }
 
   void _onTappedEvent(CalendarTapDetails details) {
     if (details.date == null) return;
     if (details.appointments != null) {
       dynamic meeting = details.appointments![0];
+      print(meeting.color);
       if (meeting is Appointment) {
         final cvrt = Meeting(
           id: dataController.mMeetings.appointments!.firstWhere((element) => element.eventName == meeting.subject).id,
@@ -65,6 +113,7 @@ class _CalendarWeek extends State<CalendarWeek> {
           from: meeting.startTime,
           to: meeting.endTime,
           recurrenceRule: meeting.recurrenceRule,
+          color: meeting.color,
         );
         meeting = cvrt;
       }
@@ -366,6 +415,7 @@ class _CalendarWeek extends State<CalendarWeek> {
 
                                       final editEndTime = DateTime(meeting.to.year, meeting.to.month, meeting.to.day, endedTime.hour, endedTime.minute);
                                       meeting.to = editEndTime;
+                                      print(meeting.color);
                                       dataController.updateMeeting(meeting);
 
                                       Navigator.pop(context);
@@ -713,7 +763,7 @@ class _CalendarWeek extends State<CalendarWeek> {
       case 'NONE':
         setState(() {
           meeting.recurrenceRule = null;
-          if (!dataController.mMeetings.appointments!.contains(meeting)) {
+          if (dataController.mMeetings.appointments!.where((element) => element.id == meeting.id && element.eventName == meeting.eventName) == []) {
             dataController.mMeetings.appointments!.add(meeting);
           } else {
             dataController.updateMeeting(meeting);
@@ -725,7 +775,7 @@ class _CalendarWeek extends State<CalendarWeek> {
           final RecurrenceProperties recProperties = RecurrenceProperties(startDate: meeting.from, recurrenceRange: RecurrenceRange.count, recurrenceCount: 60);
           meeting.recurrenceRule = SfCalendar.generateRRule(recProperties, meeting.from, meeting.to);
 
-          if (!dataController.mMeetings.appointments!.contains(meeting)) {
+          if (dataController.mMeetings.appointments!.where((element) => element.id == meeting.id && element.eventName == meeting.eventName) == []) {
             dataController.mMeetings.appointments!.add(meeting);
           } else {
             dataController.updateMeeting(meeting);
@@ -741,7 +791,7 @@ class _CalendarWeek extends State<CalendarWeek> {
             weekDays: [getWeekDays(meeting.from.weekday)],
           );
           meeting.recurrenceRule = SfCalendar.generateRRule(recProperties, meeting.from, meeting.to);
-          if (!dataController.mMeetings.appointments!.contains(meeting)) {
+          if (dataController.mMeetings.appointments!.where((element) => element.id == meeting.id && element.eventName == meeting.eventName) == []) {
             dataController.mMeetings.appointments!.add(meeting);
           } else {
             dataController.updateMeeting(meeting);
@@ -754,7 +804,7 @@ class _CalendarWeek extends State<CalendarWeek> {
           final RecurrenceProperties recProperties =
               RecurrenceProperties(startDate: meeting.from, recurrenceType: type, recurrenceCount: 20, dayOfMonth: meeting.from.day);
           meeting.recurrenceRule = SfCalendar.generateRRule(recProperties, meeting.from, meeting.to);
-          if (!dataController.mMeetings.appointments!.contains(meeting)) {
+          if (dataController.mMeetings.appointments!.where((element) => element.id == meeting.id && element.eventName == meeting.eventName) == []) {
             dataController.mMeetings.appointments!.add(meeting);
           } else {
             dataController.updateMeeting(meeting);
@@ -767,7 +817,7 @@ class _CalendarWeek extends State<CalendarWeek> {
           final RecurrenceProperties recProperties =
               RecurrenceProperties(startDate: meeting.from, recurrenceType: type, month: meeting.from.month, dayOfMonth: meeting.from.day);
           meeting.recurrenceRule = SfCalendar.generateRRule(recProperties, meeting.from, meeting.to);
-          if (!dataController.mMeetings.appointments!.contains(meeting)) {
+          if (dataController.mMeetings.appointments!.where((element) => element.id == meeting.id && element.eventName == meeting.eventName) == []) {
             dataController.mMeetings.appointments!.add(meeting);
           } else {
             dataController.updateMeeting(meeting);
@@ -775,5 +825,66 @@ class _CalendarWeek extends State<CalendarWeek> {
         });
         break;
     }
+  }
+
+  List<Appointment> getAppointmentDetails() {
+    final List<String> subjectCollection = <String>[];
+    subjectCollection.add('General Meeting');
+    subjectCollection.add('Plan Execution');
+    subjectCollection.add('Project Plan');
+    subjectCollection.add('Consulting');
+    subjectCollection.add('Support');
+    subjectCollection.add('Development Meeting');
+    subjectCollection.add('Scrum');
+    subjectCollection.add('Project Completion');
+    subjectCollection.add('Release updates');
+    subjectCollection.add('Performance Check');
+
+    final List<Color> colorCollection = <Color>[];
+    colorCollection.add(const Color(0xFF0F8644));
+    colorCollection.add(const Color(0xFF8B1FA9));
+    colorCollection.add(const Color(0xFFD20100));
+    colorCollection.add(const Color(0xFFFC571D));
+    colorCollection.add(const Color(0xFF36B37B));
+    colorCollection.add(const Color(0xFF01A1EF));
+    colorCollection.add(const Color(0xFF3D4FB5));
+    colorCollection.add(const Color(0xFFE47C73));
+    colorCollection.add(const Color(0xFF636363));
+    colorCollection.add(const Color(0xFF0A8043));
+
+    final List<Appointment> appointments = <Appointment>[];
+    final Random random = Random();
+    DateTime today = DateTime.now();
+    final DateTime rangeStartDate = today.add(const Duration(days: -(365 ~/ 2)));
+    final DateTime rangeEndDate = today.add(const Duration(days: 365));
+    for (DateTime i = rangeStartDate; i.isBefore(rangeEndDate); i = i.add(const Duration(days: 1))) {
+      final DateTime date = i;
+      final int count = random.nextInt(2);
+      for (int j = 0; j < count; j++) {
+        final DateTime startDate = DateTime(date.year, date.month, date.day, 8 + random.nextInt(8));
+        appointments.add(Appointment(
+          subject: subjectCollection[random.nextInt(7)],
+          startTime: startDate,
+          endTime: startDate.add(Duration(hours: random.nextInt(3))),
+          color: colorCollection[random.nextInt(9)],
+        ));
+      }
+    }
+
+    today = DateTime(today.year, today.month, today.day, 9);
+    // added recurrence appointment
+    appointments.add(Appointment(
+        subject: 'Development status',
+        startTime: today,
+        endTime: today.add(const Duration(hours: 2)),
+        color: colorCollection[random.nextInt(9)],
+        recurrenceRule: 'FREQ=WEEKLY;BYDAY=FR;INTERVAL=1'));
+    return appointments;
+  }
+}
+
+class _DataSource extends CalendarDataSource {
+  _DataSource(List<Appointment> source) {
+    appointments = source;
   }
 }
