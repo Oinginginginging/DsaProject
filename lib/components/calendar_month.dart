@@ -28,7 +28,7 @@ class _CalendarMonth extends State<CalendarMonth> {
     dataController = widget.dataController;
     return Column(
       children: [
-        const SizedBox(child: Text('오늘은 날씨가 춥네요! 따듯하게 입으소')),
+        const SizedBox(child: Text('오늘은 날씨가 춥네요! 따듯하게 입으세요!')),
         Expanded(child: calendar(widget.dataController.mMeetings)),
         if (showAgenda)
           SizedBox(

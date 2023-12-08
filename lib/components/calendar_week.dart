@@ -1,6 +1,6 @@
 import 'package:syncfusion_flutter_calendar/calendar.dart';
 import 'package:flutter/material.dart';
-import '../getX/data_controller.dart';
+import 'package:prototype/getX/data_controller.dart';
 import 'package:prototype/dataClass/data_class.dart';
 import 'package:flutter_spinner_time_picker/flutter_spinner_time_picker.dart';
 import 'package:flutter_colorpicker/flutter_colorpicker.dart';
@@ -12,27 +12,46 @@ class CalendarWeek extends StatefulWidget {
 
   @override
   State<CalendarWeek> createState() => _CalendarWeek();
-}
+} //createState(): State 객체를 반환, stateful widget 처음 생성되는 순간에만 호출
 
 class _CalendarWeek extends State<CalendarWeek> {
+  /*DateTime? dragStart;
+  DateTime? dragEnd;
+  List<Meeting> meetings = [];*/
   late DataController dataController;
+
   @override
   Widget build(BuildContext context) {
     dataController = widget.dataController;
-    return SafeArea(
-        child: SfCalendar(
+    return SfCalendar(
       showNavigationArrow: true,
-      onTap: _onTappedEvent,
       view: CalendarView.week,
+      allowDragAndDrop: true,
+      onDragEnd: (AppointmentDragEndDetails details) {
+        // details에서 필요한 정보 추출
+        dynamic appointment = details.appointment!;
+        DateTime? draggingTime = details.droppingTime;
+
+        // 드래그된 시간이 존재하는 경우에만 실행
+        if (draggingTime != null) {
+          // 새로운 드래그된 시간으로 일정을 업데이트
+          setState(() {
+            appointment.from = draggingTime;
+            appointment.to = draggingTime.add(appointment.to.difference(appointment.from));
+          });
+        }
+      },
       timeSlotViewSettings: const TimeSlotViewSettings(
-          timeInterval: Duration(minutes: 60),
+          timeInterval: Duration(minutes: 30),
           timeIntervalHeight: -1,
           timeFormat: 'HH:mm',
           dayFormat: 'EEE',
           timeRulerSize: 40,
           timeTextStyle: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
       dataSource: dataController.mMeetings,
-    ));
+      monthViewSettings: const MonthViewSettings(appointmentDisplayMode: MonthAppointmentDisplayMode.appointment),
+      onTap: _onTappedEvent,
+    );
   }
 
   void _onTappedEvent(CalendarTapDetails details) {
