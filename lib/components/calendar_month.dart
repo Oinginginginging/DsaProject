@@ -1,416 +1,830 @@
-import 'dart:math';
-
+import 'package:get/get.dart';
+import 'package:intl/intl.dart';
+import 'package:prototype/getX/data_controller.dart';
 import 'package:syncfusion_flutter_calendar/calendar.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_spinner_time_picker/flutter_spinner_time_picker.dart';
+import 'package:flutter_colorpicker/flutter_colorpicker.dart';
+import '../dataClass/data_class.dart';
 
 class CalendarMonth extends StatefulWidget {
-  const CalendarMonth({Key? key}) : super(key: key);
+  final DataController dataController;
+
+  const CalendarMonth(this.dataController, {Key? key}) : super(key: key);
 
   @override
-  State<CalendarMonth> createState() => _CalendarMonthState();
+  State<CalendarMonth> createState() => _CalendarMonth();
 }
 
-class _CalendarMonthState extends State<CalendarMonth> {
-  late _AppointmentDataSource _dataSource;
+class _CalendarMonth extends State<CalendarMonth> {
+  bool showAgenda = false;
+  late DataController dataController;
+  List<dynamic> selectedDayAppointments = [];
   final CalendarController _calendarController = CalendarController();
-  final ScrollController _scrollController = ScrollController();
-  final List<Color> _colorCollection = <Color>[];
-  final List<String> _colorNames = <String>[];
-
-  final List<CalendarView> _allowedViews = <CalendarView>[
-    CalendarView.day,
-    CalendarView.week,
-    CalendarView.workWeek,
-    CalendarView.month,
-    CalendarView.schedule
-  ];
-
-  final GlobalKey _globalKey = GlobalKey();
-  late List<DateTime> _visibleDates;
-  CalendarView _view = CalendarView.week;
-
-  Appointment? _selectedAppointment;
-  bool _isAllDay = false;
-  String _subject = '';
-  int _selectedColorIndex = 0;
-
-  @override
-  void initState() {
-    _calendarController.selectedDate = DateTime.now();
-    _dataSource = _AppointmentDataSource(_getRecursiveAppointments());
-    super.initState();
-  }
-
-  void _onCalendarTapped(CalendarTapDetails calendarTapDetails) {
-    if (calendarTapDetails.targetElement == CalendarElement.header ||
-        calendarTapDetails.targetElement == CalendarElement.viewHeader) {
-      return;
-    }
-
-    _selectedAppointment = null;
-    if (_calendarController.view == CalendarView.month) {
-      _calendarController.view = CalendarView.day;
-    } else {
-      if (calendarTapDetails.appointments != null &&
-          calendarTapDetails.targetElement == CalendarElement.appointment) {
-        final dynamic appointment = calendarTapDetails.appointments![0];
-        if (appointment is Appointment) {
-          _selectedAppointment = appointment;
-        }
-      }
-    }
-
-    final DateTime selectedDate = calendarTapDetails.date!;
-    final CalendarElement targetElement = calendarTapDetails.targetElement;
-
-    final bool isAppointmentTapped =
-        calendarTapDetails.targetElement == CalendarElement.appointment;
-    /*showDialog<Widget>(
-        context: context,
-        builder: (BuildContext context) {
-          final List<Appointment> appointment = <Appointment>[];
-          Appointment? newAppointment;
-
-          /// Creates a new appointment, which is displayed on the tapped
-          /// calendar element, when the editor is opened.
-          if (_selectedAppointment == null) {
-            _isAllDay =
-                calendarTapDetails.targetElement == CalendarElement.allDayPanel;
-            _selectedColorIndex = 0;
-            _subject = '';
-            final DateTime date = calendarTapDetails.date!;
-
-            newAppointment = Appointment(
-              startTime: date,
-              endTime: date.add(const Duration(hours: 1)),
-              color: _colorCollection[_selectedColorIndex],
-              isAllDay: _isAllDay,
-              subject: _subject == '' ? '(No title)' : _subject,
-            );
-            appointment.add(newAppointment);
-
-            _dataSource.appointments.add(appointment[0]);
-
-            _selectedAppointment = newAppointment;
-          }
-
-          return WillPopScope(
-            onWillPop: () async {
-              if (newAppointment != null) {
-                /// To remove the created appointment when the pop-up closed
-                /// without saving the appointment.
-                _dataSource.appointments
-                    .removeAt(_dataSource.appointments.indexOf(newAppointment));
-                _dataSource.notifyListeners(CalendarDataSourceAction.remove,
-                    <Appointment>[newAppointment]);
-              }
-              return true;
-            },
-            child: Center(
-                child: SizedBox(
-                    width: isAppointmentTapped ? 400 : 500,
-                    height: isAppointmentTapped
-                        ? (_selectedAppointment!.location == null ||
-                                _selectedAppointment!.location!.isEmpty
-                            ? 150
-                            : 200)
-                        : 400,
-                    child: Theme(
-                        data: ThemeData(colorScheme: const ColorScheme.light()),
-                        child: Card(
-                          margin: EdgeInsets.zero,
-                          color: Theme.of(context).colorScheme.primaryContainer,
-                          shape: const RoundedRectangleBorder(
-                              borderRadius:
-                                  BorderRadius.all(Radius.circular(4))),
-                          child: isAppointmentTapped
-                              ? displayAppointmentDetails(
-                                  context,
-                                  targetElement,
-                                  selectedDate,
-                                  _selectedAppointment!,
-                                  _colorCollection,
-                                  _colorNames,
-                                  _dataSource,
-                                  _visibleDates)
-                              : PopUpAppointmentEditor(
-                                  newAppointment,
-                                  appointment,
-                                  _dataSource,
-                                  _colorCollection,
-                                  _colorNames,
-                                  _selectedAppointment!,
-                                  _visibleDates),
-                        )))),
-          );
-        });*/
-  }
+  TimeOfDay selectedTime = TimeOfDay.now();
+  DateTime pickedDate = DateTime.now();
 
   @override
   Widget build(BuildContext context) {
-    final Widget calendar = Theme(
-        key: _globalKey,
-        data: ThemeData(colorScheme: const ColorScheme.light()),
-        child: _getRecurrenceCalendar(
-            _calendarController, _dataSource, _onCalendarTapped));
+    dataController = widget.dataController;
     return Column(
       children: [
-        Container(
-          decoration: BoxDecoration(
-            border: Border.all(
-                width: 2.0,
-                color: Theme.of(context).colorScheme.primaryContainer),
-            borderRadius: BorderRadius.circular(20),
+        const SizedBox(child: Text('오늘은 날씨가 춥네요! 따듯하게 입으소')),
+        Expanded(child: calendar(widget.dataController.mMeetings)),
+        if (showAgenda)
+          SizedBox(
+            height: MediaQuery.of(context).size.height * 0.25, // Adjust the height as needed
+            child: ListView.builder(
+              itemCount: selectedDayAppointments.length,
+              itemBuilder: (context, index) {
+                final meeting = selectedDayAppointments[index];
+                return Card(
+                    color: meeting.color,
+                    child: Row(children: [
+                      _buildCustomCheckbox(meeting),
+                      Center(
+                        child: SizedBox(
+                            width: MediaQuery.of(context).size.width * 0.8,
+                            child: ListTile(
+                                title: Text(meeting.eventName),
+                                subtitle: Text(
+                                    meeting.isAllDay ? 'All day' : "${DateFormat('HH:mm').format(meeting.from)} - ${DateFormat('HH:mm').format(meeting.to)}"),
+                                onLongPress: () => _editMeeting(meeting))),
+                      ),
+                    ]));
+              },
+            ),
           ),
-          padding: const EdgeInsets.fromLTRB(80, 10, 80, 10),
-          child: const Text("날씨가 어제보다 5도 낮아요! \n 외투를 챙기세요!",
-              style: TextStyle(fontWeight: FontWeight.bold)),
+        FloatingActionButton(
+          onPressed: _addMeeting,
+          child: Icon(Icons.add),
         ),
-        Expanded(
-            child: Scrollbar(
-                controller: _scrollController,
-                child: ListView(
-                  controller: _scrollController,
-                  children: <Widget>[
-                    SizedBox(
-                      height: 600,
-                      child: calendar,
-                    )
-                  ],
-                ))),
       ],
     );
   }
 
-  List<Appointment> _getRecursiveAppointments() {
-    _colorNames.add('Green');
-    _colorNames.add('Purple');
-    _colorNames.add('Red');
-    _colorNames.add('Orange');
-    _colorNames.add('Caramel');
-    _colorNames.add('Light Green');
-    _colorNames.add('Blue');
-    _colorNames.add('Peach');
-    _colorNames.add('Gray');
+  void _addMeeting() {
+    TimeOfDay startedTime = TimeOfDay.now();
+    TimeOfDay endedTime = TimeOfDay.now();
 
-    _colorCollection.add(const Color(0xFF0F8644));
-    _colorCollection.add(const Color(0xFF8B1FA9));
-    _colorCollection.add(const Color(0xFFD20100));
-    _colorCollection.add(const Color(0xFFFC571D));
-    _colorCollection.add(const Color(0xFF36B37B));
-    _colorCollection.add(const Color(0xFF01A1EF));
-    _colorCollection.add(const Color(0xFF3D4FB5));
-    _colorCollection.add(const Color(0xFFE47C73));
-    _colorCollection.add(const Color(0xFF636363));
+    String startTime = '${startedTime.hour.toString().padLeft(2, '0')}:${startedTime.minute.toString().padLeft(2, '0')}';
+    String endTime = '${endedTime.hour.toString().padLeft(2, '0')}:${endedTime.minute.toString().padLeft(2, '0')}';
 
-    final List<Appointment> appointments = <Appointment>[];
-    final Random random = Random();
-    //Recurrence Appointment 1
-    final DateTime currentDate = DateTime.now();
-    final DateTime startTime =
-        DateTime(currentDate.year, currentDate.month, currentDate.day, 9);
-    final DateTime endTime =
-        DateTime(currentDate.year, currentDate.month, currentDate.day, 11);
-    final RecurrenceProperties recurrencePropertiesForAlternativeDay =
-        RecurrenceProperties(
-            startDate: startTime,
-            interval: 2,
-            recurrenceRange: RecurrenceRange.count,
-            recurrenceCount: 20);
-    final Appointment alternativeDayAppointment = Appointment(
-        startTime: startTime,
-        endTime: endTime,
-        color: _colorCollection[random.nextInt(8)],
-        subject: 'Scrum meeting',
-        recurrenceRule: SfCalendar.generateRRule(
-            recurrencePropertiesForAlternativeDay, startTime, endTime));
+    String recurrenceRule = 'NONE';
 
-    appointments.add(alternativeDayAppointment);
+    DateTime selectedDate = _calendarController.selectedDate!;
 
-    //Recurrence Appointment 2
-    final DateTime startTime1 =
-        DateTime(currentDate.year, currentDate.month, currentDate.day, 13);
-    final DateTime endTime1 =
-        DateTime(currentDate.year, currentDate.month, currentDate.day, 15);
-    final RecurrenceProperties recurrencePropertiesForWeeklyAppointment =
-        RecurrenceProperties(
-      startDate: startTime1,
-      recurrenceType: RecurrenceType.weekly,
-      recurrenceRange: RecurrenceRange.count,
-      weekDays: <WeekDays>[WeekDays.monday],
-      recurrenceCount: 20,
-    );
+    TextEditingController textController = TextEditingController();
 
-    final Appointment weeklyAppointment = Appointment(
-        startTime: startTime1,
-        endTime: endTime1,
-        color: _colorCollection[random.nextInt(8)],
-        subject: 'product development status',
-        recurrenceRule: SfCalendar.generateRRule(
-            recurrencePropertiesForWeeklyAppointment, startTime1, endTime1));
+    void showTimePicker(index, setInnerState) async {
+      final pickedTime = await showSpinnerTimePicker(context,
+          title: 'Edit ${index == 1 ? 'Start' : 'End'} Time',
+          height: 100,
+          width: 70,
+          spinnerBgColor: Colors.grey,
+          spinnerHeight: 100,
+          spinnerWidth: 50,
+          backgroundColor: Colors.yellow[50],
+          selectedTextStyle: const TextStyle(color: Colors.black, fontSize: 30),
+          nonSelectedTextStyle: TextStyle(color: Colors.grey[700], fontSize: 30),
+          titleStyle: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+          buttonStyle: ButtonStyle(backgroundColor: MaterialStateProperty.all(Colors.transparent)),
+          buttonTextStyle: const TextStyle(fontSize: 16, color: Colors.transparent),
+          barrierDismissible: true,
+          initTime: index == 1 ? startedTime : endedTime);
+      if (pickedTime != null) {
+        setState(() {
+          if (index == 1) {
+            startedTime = pickedTime;
+          } else {
+            endedTime = pickedTime;
+          }
+        });
+        setInnerState(() {
+          startTime = '${startedTime.hour.toString().padLeft(2, '0')}:${startedTime.minute.toString().padLeft(2, '0')}';
+          endTime = '${endedTime.hour.toString().padLeft(2, '0')}:${endedTime.minute.toString().padLeft(2, '0')}';
+        });
+      }
+    }
 
-    appointments.add(weeklyAppointment);
+    final recurSelect = ['NONE', 'DAILY', 'WEEKLY', 'MONTHLY', 'YEARLY'];
+    var selectedRecur = recurrenceRule == 'NONE' ? 'NONE' : recurrenceRule.split(';')[0].substring(5);
 
-    final DateTime startTime2 =
-        DateTime(currentDate.year, currentDate.month, currentDate.day, 14);
-    final DateTime endTime2 =
-        DateTime(currentDate.year, currentDate.month, currentDate.day, 15);
-    final RecurrenceProperties recurrencePropertiesForMonthlyAppointment =
-        RecurrenceProperties(
-            startDate: startTime2,
-            recurrenceType: RecurrenceType.monthly,
-            recurrenceRange: RecurrenceRange.count,
-            recurrenceCount: 10);
+    Color color = Color.fromARGB(255, 228, 126, 126);
 
-    final Appointment monthlyAppointment = Appointment(
-        startTime: startTime2,
-        endTime: endTime2,
-        color: _colorCollection[random.nextInt(8)],
-        subject: 'Sprint planning meeting',
-        recurrenceRule: SfCalendar.generateRRule(
-            recurrencePropertiesForMonthlyAppointment, startTime2, endTime2));
-
-    appointments.add(monthlyAppointment);
-
-    final DateTime startTime3 =
-        DateTime(currentDate.year, currentDate.month, currentDate.day, 12);
-    final DateTime endTime3 =
-        DateTime(currentDate.year, currentDate.month, currentDate.day, 14);
-    final RecurrenceProperties recurrencePropertiesForYearlyAppointment =
-        RecurrenceProperties(
-            startDate: startTime3,
-            recurrenceType: RecurrenceType.yearly,
-            dayOfMonth: 5);
-
-    final Appointment yearlyAppointment = Appointment(
-        startTime: startTime3,
-        endTime: endTime3,
-        color: _colorCollection[random.nextInt(8)],
-        isAllDay: true,
-        subject: 'Stephen birthday',
-        recurrenceRule: SfCalendar.generateRRule(
-            recurrencePropertiesForYearlyAppointment, startTime3, endTime3));
-
-    appointments.add(yearlyAppointment);
-
-    final DateTime startTime4 =
-        DateTime(currentDate.year, currentDate.month, currentDate.day, 17);
-    final DateTime endTime4 =
-        DateTime(currentDate.year, currentDate.month, currentDate.day, 18);
-    final RecurrenceProperties recurrencePropertiesForCustomDailyAppointment =
-        RecurrenceProperties(startDate: startTime4);
-
-    final Appointment customDailyAppointment = Appointment(
-      startTime: startTime4,
-      endTime: endTime4,
-      color: _colorCollection[random.nextInt(8)],
-      subject: 'General meeting',
-      recurrenceRule: SfCalendar.generateRRule(
-          recurrencePropertiesForCustomDailyAppointment, startTime4, endTime4),
-    );
-
-    appointments.add(customDailyAppointment);
-
-    final DateTime startTime5 =
-        DateTime(currentDate.year, currentDate.month, currentDate.day, 12);
-    final DateTime endTime5 =
-        DateTime(currentDate.year, currentDate.month, currentDate.day, 13);
-    final RecurrenceProperties recurrencePropertiesForCustomWeeklyAppointment =
-        RecurrenceProperties(
-            startDate: startTime5,
-            recurrenceType: RecurrenceType.weekly,
-            recurrenceRange: RecurrenceRange.endDate,
-            weekDays: <WeekDays>[WeekDays.monday, WeekDays.friday],
-            endDate: DateTime.now().add(const Duration(days: 14)));
-
-    final Appointment customWeeklyAppointment = Appointment(
-        startTime: startTime5,
-        endTime: endTime5,
-        color: _colorCollection[random.nextInt(8)],
-        subject: 'performance check',
-        recurrenceRule: SfCalendar.generateRRule(
-            recurrencePropertiesForCustomWeeklyAppointment,
-            startTime5,
-            endTime5));
-
-    appointments.add(customWeeklyAppointment);
-
-    final DateTime startTime6 =
-        DateTime(currentDate.year, currentDate.month, currentDate.day, 16);
-    final DateTime endTime6 =
-        DateTime(currentDate.year, currentDate.month, currentDate.day, 18);
-
-    final RecurrenceProperties recurrencePropertiesForCustomMonthlyAppointment =
-        RecurrenceProperties(
-            startDate: startTime6,
-            recurrenceType: RecurrenceType.monthly,
-            recurrenceRange: RecurrenceRange.count,
-            dayOfWeek: DateTime.friday,
-            week: 4,
-            recurrenceCount: 12);
-
-    final Appointment customMonthlyAppointment = Appointment(
-        startTime: startTime6,
-        endTime: endTime6,
-        color: _colorCollection[random.nextInt(8)],
-        subject: 'Sprint end meeting',
-        recurrenceRule: SfCalendar.generateRRule(
-            recurrencePropertiesForCustomMonthlyAppointment,
-            startTime6,
-            endTime6));
-
-    appointments.add(customMonthlyAppointment);
-
-    final DateTime startTime7 =
-        DateTime(currentDate.year, currentDate.month, currentDate.day, 14);
-    final DateTime endTime7 =
-        DateTime(currentDate.year, currentDate.month, currentDate.day, 15);
-    final RecurrenceProperties recurrencePropertiesForCustomYearlyAppointment =
-        RecurrenceProperties(
-            startDate: startTime7,
-            recurrenceType: RecurrenceType.yearly,
-            recurrenceRange: RecurrenceRange.count,
-            interval: 2,
-            month: DateTime.february,
-            week: 2,
-            dayOfWeek: DateTime.sunday,
-            recurrenceCount: 10);
-
-    final Appointment customYearlyAppointment = Appointment(
-        startTime: startTime7,
-        endTime: endTime7,
-        color: _colorCollection[random.nextInt(8)],
-        subject: 'Alumini meet',
-        recurrenceRule: SfCalendar.generateRRule(
-            recurrencePropertiesForCustomYearlyAppointment,
-            startTime7,
-            endTime7));
-
-    appointments.add(customYearlyAppointment);
-    return appointments;
+    showDialog(
+        context: context,
+        builder: (BuildContext buildContext) {
+          return Dialog(
+              backgroundColor: Colors.transparent,
+              insetPadding: const EdgeInsets.all(10),
+              child: SizedBox(
+                width: 30,
+                height: 450,
+                child: DecoratedBox(
+                    decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(15)),
+                    child: StatefulBuilder(
+                      builder: (BuildContext context, StateSetter setInnerState) {
+                        return Column(mainAxisAlignment: MainAxisAlignment.spaceAround, crossAxisAlignment: CrossAxisAlignment.center, children: [
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceAround,
+                            crossAxisAlignment: CrossAxisAlignment.center,
+                            children: [
+                              Container(
+                                  padding: const EdgeInsets.fromLTRB(10, 15, 0, 10),
+                                  child: RichText(
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    text: TextSpan(
+                                      text: 'Add Meeting (${selectedDate.day}/${selectedDate.month}/${selectedDate.year})',
+                                      style: const TextStyle(
+                                          fontStyle: FontStyle.italic,
+                                          fontSize: 15,
+                                          fontWeight: FontWeight.bold,
+                                          height: 1.5,
+                                          shadows: [Shadow(color: Colors.black, offset: Offset(0, -5))],
+                                          color: Colors.transparent,
+                                          decoration: TextDecoration.underline,
+                                          decorationColor: Colors.black,
+                                          decorationStyle: TextDecorationStyle.double,
+                                          decorationThickness: 1.5),
+                                    ),
+                                    textAlign: TextAlign.center,
+                                  )),
+                              SizedBox(
+                                width: 25,
+                                height: 25,
+                                child: DecoratedBox(
+                                  decoration: BoxDecoration(
+                                      borderRadius: BorderRadius.circular(30.0),
+                                      gradient: const LinearGradient(
+                                        begin: Alignment.topRight,
+                                        end: Alignment.bottomLeft,
+                                        colors: [
+                                          Color.fromARGB(255, 213, 213, 213),
+                                          Color.fromARGB(255, 234, 231, 231),
+                                        ],
+                                      )),
+                                  child: FloatingActionButton.small(
+                                    shape: const CircleBorder(),
+                                    backgroundColor: Colors.transparent,
+                                    onPressed: () {
+                                      setState(() {
+                                        Navigator.of(context, rootNavigator: true).pop();
+                                      });
+                                    },
+                                    child: const Text("X", style: TextStyle(fontWeight: FontWeight.bold, color: Colors.black)),
+                                  ),
+                                ),
+                              )
+                            ],
+                          ),
+                          DecoratedBox(
+                            decoration: BoxDecoration(color: Colors.grey, borderRadius: BorderRadius.circular(25)),
+                            child: SizedBox(
+                              height: 55,
+                              width: 250,
+                              child: TextFormField(
+                                  textAlignVertical: TextAlignVertical.top,
+                                  minLines: 1,
+                                  maxLines: 1,
+                                  cursorWidth: 1,
+                                  cursorColor: Colors.black,
+                                  textAlign: TextAlign.center,
+                                  controller: textController,
+                                  decoration: InputDecoration(
+                                    labelText: "Name of Event",
+                                    labelStyle: TextStyle(
+                                      color: Colors.grey[850],
+                                    ),
+                                    floatingLabelBehavior: FloatingLabelBehavior.never,
+                                    border: OutlineInputBorder(borderSide: BorderSide.none, borderRadius: BorderRadius.circular(25.0)),
+                                  )),
+                            ),
+                          ),
+                          ListView(scrollDirection: Axis.vertical, shrinkWrap: true, children: [
+                            const Text(
+                              "Starts At",
+                              textAlign: TextAlign.center,
+                              style: TextStyle(fontWeight: FontWeight.bold),
+                            ),
+                            Padding(
+                              padding: const EdgeInsets.fromLTRB(50, 5, 50, 15),
+                              child: SizedBox(
+                                  width: 20,
+                                  height: 40,
+                                  child: DecoratedBox(
+                                    decoration: BoxDecoration(
+                                      borderRadius: BorderRadius.circular(15),
+                                      gradient: const LinearGradient(
+                                        begin: Alignment.topRight,
+                                        end: Alignment.bottomLeft,
+                                        colors: [
+                                          Color.fromARGB(255, 213, 213, 213),
+                                          Color.fromARGB(255, 234, 231, 231),
+                                        ],
+                                      ),
+                                    ),
+                                    child: FloatingActionButton(
+                                      backgroundColor: Colors.transparent,
+                                      onPressed: () {
+                                        showTimePicker(1, setInnerState);
+                                      },
+                                      child: Text(
+                                        startTime,
+                                        style: const TextStyle(color: Colors.black),
+                                      ),
+                                    ),
+                                  )),
+                            ),
+                            const Text(
+                              "Ends At",
+                              textAlign: TextAlign.center,
+                              style: TextStyle(fontWeight: FontWeight.bold),
+                            ),
+                            Padding(
+                              padding: const EdgeInsets.fromLTRB(50, 5, 50, 15),
+                              child: SizedBox(
+                                  width: 20,
+                                  height: 40,
+                                  child: DecoratedBox(
+                                    decoration: BoxDecoration(
+                                      borderRadius: BorderRadius.circular(15),
+                                      gradient: const LinearGradient(
+                                        begin: Alignment.topRight,
+                                        end: Alignment.bottomLeft,
+                                        colors: [
+                                          Color.fromARGB(255, 213, 213, 213),
+                                          Color.fromARGB(255, 234, 231, 231),
+                                        ],
+                                      ),
+                                    ),
+                                    child: FloatingActionButton(
+                                      backgroundColor: Colors.transparent,
+                                      onPressed: () {
+                                        showTimePicker(2, setInnerState);
+                                      },
+                                      child: Text(
+                                        endTime,
+                                        style: const TextStyle(color: Colors.black),
+                                      ),
+                                    ),
+                                  )),
+                            ),
+                            const Text(
+                              "Recurring...",
+                              textAlign: TextAlign.center,
+                              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                            ),
+                            Padding(
+                                padding: const EdgeInsets.fromLTRB(5, 0, 10, 10),
+                                child: Center(
+                                  child: DropdownButton(
+                                    alignment: Alignment.center,
+                                    value: selectedRecur,
+                                    items: recurSelect.map((e) {
+                                      return DropdownMenuItem(
+                                        value: e,
+                                        child: Text(e),
+                                      );
+                                    }).toList(),
+                                    onChanged: (e) {
+                                      setInnerState(() {
+                                        selectedRecur = e!;
+                                      });
+                                      setState(() {
+                                        selectedRecur = e!;
+                                      });
+                                    },
+                                  ),
+                                )),
+                            Padding(
+                              padding: const EdgeInsets.fromLTRB(40, 0, 40, 0),
+                              child: Container(
+                                  padding: const EdgeInsets.fromLTRB(10, 10, 10, 10),
+                                  decoration: BoxDecoration(shape: BoxShape.rectangle, color: color, borderRadius: BorderRadius.circular(15.0)),
+                                  child: GestureDetector(
+                                    onTap: () {
+                                      showDialog(
+                                          context: context,
+                                          builder: (BuildContext buildcontext) {
+                                            return Dialog(
+                                                backgroundColor: Colors.transparent,
+                                                child: SingleChildScrollView(
+                                                  scrollDirection: Axis.vertical,
+                                                  child: Container(
+                                                      width: 50,
+                                                      height: 480,
+                                                      padding: const EdgeInsets.all(20),
+                                                      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(15)),
+                                                      child: ColorPicker(
+                                                          enableAlpha: false,
+                                                          pickerColor: color,
+                                                          onColorChanged: ((Color colorr) {
+                                                            setInnerState(() {
+                                                              color = colorr;
+                                                            });
+                                                            setState(() {
+                                                              color = colorr;
+                                                            });
+                                                          }))),
+                                                ));
+                                          });
+                                    },
+                                    child: const Text(
+                                      "Choose Color",
+                                      style: TextStyle(color: Colors.white),
+                                      textAlign: TextAlign.center,
+                                    ),
+                                  )),
+                            )
+                          ]),
+                          Container(
+                            padding: const EdgeInsets.fromLTRB(10, 10, 10, 10),
+                            decoration: BoxDecoration(shape: BoxShape.rectangle, color: Colors.grey[850], borderRadius: BorderRadius.circular(15.0)),
+                            child: GestureDetector(
+                                child: const Text(
+                                  "Create",
+                                  style: TextStyle(color: Colors.white),
+                                  textAlign: TextAlign.center,
+                                ),
+                                onTap: () {
+                                  final Meeting newMeeting = Meeting(
+                                    eventName: textController.text,
+                                    id: dataController.mMeetings.appointments!.length,
+                                    from: DateTime(selectedDate.year, selectedDate.month, selectedDate.day, startedTime.hour, startedTime.minute),
+                                    to: DateTime(selectedDate.year, selectedDate.month, selectedDate.day, endedTime.hour, endedTime.minute),
+                                    color: color,
+                                  );
+                                  dataController.mMeetings.appointments!.add(newMeeting);
+                                  dataController.mMeetings.notifyListeners(CalendarDataSourceAction.add, dataController.mMeetings.appointments!);
+                                  setState(() {
+                                    _calculateRecurrence(selectedRecur, newMeeting);
+                                    Navigator.pop(context);
+                                  });
+                                }),
+                          ),
+                        ]);
+                      },
+                    )),
+              ));
+        });
   }
 
-  SfCalendar _getRecurrenceCalendar(
-      [CalendarController? calendarController,
-      CalendarDataSource? calendarDataSource,
-      dynamic calendarTapCallback]) {
+  SfCalendar calendar(data) {
     return SfCalendar(
-      controller: calendarController,
-      allowedViews: _allowedViews,
-      showDatePickerButton: true,
-      dataSource: calendarDataSource,
+      key: ValueKey(data),
+      controller: _calendarController,
+      view: CalendarView.month,
+      dataSource: data,
       monthViewSettings: const MonthViewSettings(
-          appointmentDisplayMode: MonthAppointmentDisplayMode.appointment),
-      onTap: calendarTapCallback,
+        appointmentDisplayMode: MonthAppointmentDisplayMode.appointment,
+      ),
+      onTap: _onTappedDay,
     );
   }
-}
 
-class _AppointmentDataSource extends CalendarDataSource {
-  _AppointmentDataSource(this.source);
+  void _editMeeting(Meeting meeting) {
+    TimeOfDay startedTime = TimeOfDay(hour: meeting.from.hour, minute: meeting.from.minute);
+    TimeOfDay endedTime = TimeOfDay(hour: meeting.to.hour, minute: meeting.to.minute);
 
-  List<Appointment> source;
+    String startTime = '${startedTime.hour.toString().padLeft(2, '0')}:${startedTime.minute.toString().padLeft(2, '0')}';
+    String endTime = '${endedTime.hour.toString().padLeft(2, '0')}:${endedTime.minute.toString().padLeft(2, '0')}';
 
-  @override
-  List<dynamic> get appointments => source;
+    void showTimePicker(index, setInnerState) async {
+      final pickedTime = await showSpinnerTimePicker(context,
+          title: 'Edit ${index == 1 ? 'Start' : 'End'} Time',
+          height: 100,
+          width: 70,
+          spinnerBgColor: Colors.grey,
+          spinnerHeight: 100,
+          spinnerWidth: 50,
+          backgroundColor: Colors.yellow[50],
+          selectedTextStyle: const TextStyle(color: Colors.black, fontSize: 30),
+          nonSelectedTextStyle: TextStyle(color: Colors.grey[700], fontSize: 30),
+          titleStyle: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+          buttonStyle: ButtonStyle(backgroundColor: MaterialStateProperty.all(Colors.transparent)),
+          buttonTextStyle: const TextStyle(fontSize: 16, color: Colors.transparent),
+          barrierDismissible: true,
+          initTime: index == 1 ? startedTime : endedTime);
+      if (pickedTime != null) {
+        setState(() {
+          if (index == 1) {
+            startedTime = pickedTime;
+          } else {
+            endedTime = pickedTime;
+          }
+        });
+        setInnerState(() {
+          startTime = '${startedTime.hour.toString().padLeft(2, '0')}:${startedTime.minute.toString().padLeft(2, '0')}';
+          endTime = '${endedTime.hour.toString().padLeft(2, '0')}:${endedTime.minute.toString().padLeft(2, '0')}';
+        });
+      }
+    }
+
+    final recurSelect = ['NONE', 'DAILY', 'WEEKLY', 'MONTHLY', 'YEARLY'];
+    var selectedRecur = meeting.recurrenceRule == null ? 'NONE' : meeting.recurrenceRule!.split(';')[0].substring(5);
+
+    showDialog(
+        context: context,
+        builder: (BuildContext buildContext) {
+          return Dialog(
+              backgroundColor: Colors.transparent,
+              insetPadding: const EdgeInsets.all(10),
+              child: SizedBox(
+                width: 30,
+                height: 450,
+                child: DecoratedBox(
+                    decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(15)),
+                    child: StatefulBuilder(
+                      builder: (BuildContext context, StateSetter setInnerState) {
+                        return Column(
+                          mainAxisAlignment: MainAxisAlignment.spaceAround,
+                          crossAxisAlignment: CrossAxisAlignment.center,
+                          children: [
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceAround,
+                              crossAxisAlignment: CrossAxisAlignment.center,
+                              children: [
+                                Container(
+                                    padding: const EdgeInsets.fromLTRB(10, 15, 0, 10),
+                                    child: RichText(
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      text: TextSpan(
+                                        text: '${meeting.eventName} (${meeting.from.day}/${meeting.from.month}/${meeting.from.year})',
+                                        style: const TextStyle(
+                                            fontStyle: FontStyle.italic,
+                                            fontSize: 15,
+                                            fontWeight: FontWeight.bold,
+                                            height: 1.5,
+                                            shadows: [Shadow(color: Colors.black, offset: Offset(0, -5))],
+                                            color: Colors.transparent,
+                                            decoration: TextDecoration.underline,
+                                            decorationColor: Colors.black,
+                                            decorationStyle: TextDecorationStyle.double,
+                                            decorationThickness: 1.5),
+                                      ),
+                                      textAlign: TextAlign.center,
+                                    )),
+                                SizedBox(
+                                  width: 25,
+                                  height: 25,
+                                  child: DecoratedBox(
+                                    decoration: BoxDecoration(
+                                        borderRadius: BorderRadius.circular(30.0),
+                                        gradient: const LinearGradient(
+                                          begin: Alignment.topRight,
+                                          end: Alignment.bottomLeft,
+                                          colors: [
+                                            Color.fromARGB(255, 213, 213, 213),
+                                            Color.fromARGB(255, 234, 231, 231),
+                                          ],
+                                        )),
+                                    child: FloatingActionButton.small(
+                                      shape: const CircleBorder(),
+                                      backgroundColor: Colors.transparent,
+                                      onPressed: () {
+                                        setState(() {
+                                          Navigator.of(context, rootNavigator: true).pop();
+                                        });
+                                      },
+                                      child: const Text("X", style: TextStyle(fontWeight: FontWeight.bold, color: Colors.black)),
+                                    ),
+                                  ),
+                                )
+                              ],
+                            ),
+                            ListView(
+                              scrollDirection: Axis.vertical,
+                              shrinkWrap: true,
+                              children: [
+                                const Text(
+                                  "Starts At",
+                                  textAlign: TextAlign.center,
+                                  style: TextStyle(fontWeight: FontWeight.bold),
+                                ),
+                                Padding(
+                                  padding: const EdgeInsets.fromLTRB(50, 5, 50, 15),
+                                  child: SizedBox(
+                                      width: 20,
+                                      height: 40,
+                                      child: DecoratedBox(
+                                        decoration: BoxDecoration(
+                                          borderRadius: BorderRadius.circular(15),
+                                          gradient: const LinearGradient(
+                                            begin: Alignment.topRight,
+                                            end: Alignment.bottomLeft,
+                                            colors: [
+                                              Color.fromARGB(255, 213, 213, 213),
+                                              Color.fromARGB(255, 234, 231, 231),
+                                            ],
+                                          ),
+                                        ),
+                                        child: FloatingActionButton(
+                                          backgroundColor: Colors.transparent,
+                                          onPressed: () {
+                                            showTimePicker(1, setInnerState);
+                                          },
+                                          child: Text(
+                                            startTime,
+                                            style: const TextStyle(color: Colors.black),
+                                          ),
+                                        ),
+                                      )),
+                                ),
+                                const Text(
+                                  "Ends At",
+                                  textAlign: TextAlign.center,
+                                  style: TextStyle(fontWeight: FontWeight.bold),
+                                ),
+                                Padding(
+                                  padding: const EdgeInsets.fromLTRB(50, 5, 50, 15),
+                                  child: SizedBox(
+                                      width: 20,
+                                      height: 40,
+                                      child: DecoratedBox(
+                                        decoration: BoxDecoration(
+                                          borderRadius: BorderRadius.circular(15),
+                                          gradient: const LinearGradient(
+                                            begin: Alignment.topRight,
+                                            end: Alignment.bottomLeft,
+                                            colors: [
+                                              Color.fromARGB(255, 213, 213, 213),
+                                              Color.fromARGB(255, 234, 231, 231),
+                                            ],
+                                          ),
+                                        ),
+                                        child: FloatingActionButton(
+                                          backgroundColor: Colors.transparent,
+                                          onPressed: () {
+                                            showTimePicker(2, setInnerState);
+                                          },
+                                          child: Text(
+                                            endTime,
+                                            style: const TextStyle(color: Colors.black),
+                                          ),
+                                        ),
+                                      )),
+                                ),
+                                const Text(
+                                  "Recurring...",
+                                  textAlign: TextAlign.center,
+                                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                                ),
+                                Padding(
+                                    padding: const EdgeInsets.fromLTRB(5, 0, 10, 10),
+                                    child: Center(
+                                      child: DropdownButton(
+                                        alignment: Alignment.center,
+                                        value: selectedRecur,
+                                        items: recurSelect.map((e) {
+                                          return DropdownMenuItem(
+                                            value: e,
+                                            child: Text(e),
+                                          );
+                                        }).toList(),
+                                        onChanged: (e) {
+                                          setInnerState(() {
+                                            selectedRecur = e!;
+                                          });
+                                          setState(() {
+                                            selectedRecur = e!;
+                                          });
+                                        },
+                                      ),
+                                    )),
+                              ],
+                            ),
+                            Container(
+                              padding: const EdgeInsets.fromLTRB(10, 10, 10, 10),
+                              decoration: BoxDecoration(shape: BoxShape.rectangle, color: Colors.red, borderRadius: BorderRadius.circular(15.0)),
+                              child: GestureDetector(
+                                  child: const Text(
+                                    "Delete",
+                                    style: TextStyle(color: Colors.white),
+                                    textAlign: TextAlign.center,
+                                  ),
+                                  onTap: () {
+                                    setState(() {
+                                      dataController.mMeetings.appointments!.removeWhere((element) => element.id == meeting.id);
+                                      dataController.mMeetings.notifyListeners(CalendarDataSourceAction.remove, <Meeting>[meeting]);
+
+                                      selectedDayAppointments = dataController.mMeetings.appointments!
+                                          .where((e) => e.from.day == selectedDayAppointments[0].from.day && e.from.hour <= 24)
+                                          .toList();
+                                      Navigator.pop(context, selectedDayAppointments);
+                                    });
+                                  }),
+                            ),
+                            Container(
+                              padding: const EdgeInsets.fromLTRB(10, 10, 10, 10),
+                              decoration: BoxDecoration(shape: BoxShape.rectangle, color: Colors.green, borderRadius: BorderRadius.circular(15.0)),
+                              child: GestureDetector(
+                                  child: const Text(
+                                    "Confirm",
+                                    style: TextStyle(color: Colors.white),
+                                    textAlign: TextAlign.center,
+                                  ),
+                                  onTap: () {
+                                    _calculateRecurrence(selectedRecur, meeting);
+                                    setState(() {
+                                      final editStartTime =
+                                          DateTime(meeting.from.year, meeting.from.month, meeting.from.day, startedTime.hour, startedTime.minute);
+                                      meeting.from = editStartTime;
+                                      selectedDayAppointments =
+                                          dataController.mMeetings.appointments!.where((e) => e.from.day == meeting.from.day <= 24).toList();
+                                      final editEndTime = DateTime(meeting.to.year, meeting.to.month, meeting.to.day, endedTime.hour, endedTime.minute);
+                                      meeting.to = editEndTime;
+                                      dataController.updateMeeting(meeting);
+                                      selectedDayAppointments =
+                                          dataController.mMeetings.appointments!.where((e) => e.from.day == meeting.from.day && e.from.hour <= 24).toList();
+                                      Navigator.pop(context, selectedDayAppointments);
+                                    });
+                                  }),
+                            ),
+                          ],
+                        );
+                      },
+                    )),
+              ));
+        });
+  }
+
+  void _calculateRecurrence(String rec, Meeting meeting) {
+    WeekDays getWeekDays(int n) {
+      switch (n) {
+        case 1:
+          return WeekDays.monday;
+        case 2:
+          return WeekDays.tuesday;
+        case 3:
+          return WeekDays.wednesday;
+        case 4:
+          return WeekDays.thursday;
+        case 5:
+          return WeekDays.friday;
+        case 6:
+          return WeekDays.saturday;
+        default:
+          return WeekDays.sunday;
+      }
+    }
+
+    dynamic type;
+    switch (rec) {
+      case 'NONE':
+        setState(() {
+          meeting.recurrenceRule = null;
+          if (!dataController.mMeetings.appointments!.contains(meeting)) {
+            dataController.mMeetings.appointments!.add(meeting);
+          } else {
+            dataController.updateMeeting(meeting);
+          }
+
+          selectedDayAppointments = dataController.mMeetings.appointments!.where((e) => e.from.day == meeting.from.day && e.from.hour <= 24).toList();
+        });
+        break;
+      case 'DAILY':
+        setState(() {
+          final RecurrenceProperties recProperties = RecurrenceProperties(startDate: meeting.from, recurrenceRange: RecurrenceRange.count, recurrenceCount: 60);
+          meeting.recurrenceRule = SfCalendar.generateRRule(recProperties, meeting.from, meeting.to);
+
+          if (!dataController.mMeetings.appointments!.contains(meeting)) {
+            dataController.mMeetings.appointments!.add(meeting);
+          } else {
+            dataController.updateMeeting(meeting);
+          }
+          selectedDayAppointments = dataController.mMeetings.appointments!.where((e) => e.from.day == meeting.from.day <= 24).toList();
+        });
+        break;
+      case 'WEEKLY':
+        setState(() {
+          type = RecurrenceType.weekly;
+          final RecurrenceProperties recProperties = RecurrenceProperties(
+            startDate: meeting.from,
+            recurrenceType: type,
+            weekDays: [getWeekDays(meeting.from.weekday)],
+          );
+          meeting.recurrenceRule = SfCalendar.generateRRule(recProperties, meeting.from, meeting.to);
+          if (!dataController.mMeetings.appointments!.contains(meeting)) {
+            dataController.mMeetings.appointments!.add(meeting);
+          } else {
+            dataController.updateMeeting(meeting);
+          }
+          selectedDayAppointments =
+              dataController.mMeetings.appointments!.where((e) => e.from.day == selectedDayAppointments[0].from.day && e.from.hour <= 24).toList();
+        });
+        break;
+      case 'MONTHLY':
+        setState(() {
+          type = RecurrenceType.monthly;
+          final RecurrenceProperties recProperties =
+              RecurrenceProperties(startDate: meeting.from, recurrenceType: type, recurrenceCount: 20, dayOfMonth: meeting.from.day);
+          meeting.recurrenceRule = SfCalendar.generateRRule(recProperties, meeting.from, meeting.to);
+          if (!dataController.mMeetings.appointments!.contains(meeting)) {
+            dataController.mMeetings.appointments!.add(meeting);
+          } else {
+            dataController.updateMeeting(meeting);
+          }
+          selectedDayAppointments =
+              dataController.mMeetings.appointments!.where((e) => e.from.day == selectedDayAppointments[0].from.day && e.from.hour <= 24).toList();
+        });
+        break;
+      case 'YEARLY':
+        setState(() {
+          type = RecurrenceType.yearly;
+          final RecurrenceProperties recProperties =
+              RecurrenceProperties(startDate: meeting.from, recurrenceType: type, month: meeting.from.month, dayOfMonth: meeting.from.day);
+          meeting.recurrenceRule = SfCalendar.generateRRule(recProperties, meeting.from, meeting.to);
+          if (!dataController.mMeetings.appointments!.contains(meeting)) {
+            dataController.mMeetings.appointments!.add(meeting);
+          } else {
+            dataController.updateMeeting(meeting);
+          }
+          selectedDayAppointments =
+              dataController.mMeetings.appointments!.where((e) => e.from.day == selectedDayAppointments[0].from.day && e.from.hour <= 24).toList();
+        });
+        break;
+    }
+  }
+
+  Widget _buildCustomCheckbox(Meeting meeting) {
+    return GestureDetector(
+        onTap: () {
+          _onCheckboxClicked(meeting);
+        },
+        child: Container(
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: meeting.showTriangularMark
+                ? Colors.yellow
+                : meeting.isDone
+                    ? Colors.green
+                    : Colors.grey,
+          ),
+          child: Icon(
+            meeting.showTriangularMark ? Icons.details : Icons.check,
+            color: Colors.white,
+          ),
+        ));
+  }
+
+  void _onCheckboxClicked(dynamic meeting) {
+    setState(() {
+      if (!meeting.isDone) {
+        meeting.isDone = true;
+        dataController.updateMeeting(meeting);
+      } else if (!meeting.showTriangularMark) {
+        meeting.showTriangularMark = true;
+        dataController.updateMeeting(meeting);
+      } else {
+        meeting.isDone = false;
+        meeting.showTriangularMark = false;
+        dataController.updateMeeting(meeting);
+      }
+    });
+  }
+
+  void _onTappedDay(CalendarTapDetails details) {
+    if (details.date == null) return;
+
+    setState(() {
+      showAgenda = _showAgenda(details.appointments);
+      if (showAgenda) {
+        selectedDayAppointments = _getRecurringAppointments(details.appointments!);
+      } else {
+        selectedDayAppointments = [];
+      }
+    });
+  }
+
+  List<dynamic> _getRecurringAppointments(List<dynamic> appointments) {
+    List<Meeting> recurringAppointments = [];
+
+    for (var appointment in appointments) {
+      if (appointment is Appointment) {
+        final recurringAppointment = Meeting(
+          id: int.parse(appointment.id.toString()),
+          eventName: appointment.subject,
+          from: DateTime(
+              appointment.startTime.year, appointment.startTime.month, appointment.startTime.day, appointment.startTime.hour, appointment.startTime.minute),
+          to: DateTime(appointment.endTime.year, appointment.endTime.month, appointment.endTime.day, appointment.endTime.hour, appointment.endTime.minute),
+          color: appointment.color,
+        );
+        if (!recurringAppointments.contains(recurringAppointment)) {
+          recurringAppointments.add(recurringAppointment);
+        }
+      } else {
+        if (!recurringAppointments.contains(appointment)) {
+          recurringAppointments.add(appointment);
+        }
+      }
+    }
+    return recurringAppointments;
+  }
+
+  bool _showAgenda(List<dynamic>? appointments) {
+    return appointments != null && appointments.isNotEmpty;
+  }
 }

@@ -35,6 +35,12 @@ class _CalendarDay extends State<CalendarDay> {
       const Text(
         "TO-DO-LIST",
         style: TextStyle(fontWeight: FontWeight.bold),
+      ),
+      const Row(
+        children: [Icon(Icons.check_box), Text("과제 하기")],
+      ),
+      const Row(
+        children: [Icon(Icons.check_box_outline_blank), Text("알바 가기")],
       )
     ]));
   }

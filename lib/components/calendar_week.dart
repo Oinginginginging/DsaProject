@@ -1,76 +1,50 @@
 import 'package:syncfusion_flutter_calendar/calendar.dart';
 import 'package:flutter/material.dart';
+import '../getX/data_controller.dart';
+import 'package:prototype/dataClass/data_class.dart';
+import 'package:flutter_spinner_time_picker/flutter_spinner_time_picker.dart';
+import 'package:flutter_colorpicker/flutter_colorpicker.dart';
 
 class CalendarWeek extends StatefulWidget {
-  const CalendarWeek({super.key}); //이 키는 뭐지
+  final DataController dataController;
+
+  const CalendarWeek({Key? key, required this.dataController}) : super(key: key);
+
 
   @override
   State<CalendarWeek> createState() => _CalendarWeek();
 } //createState(): State 객체를 반환, stateful widget 처음 생성되는 순간에만 호출
 
 class _CalendarWeek extends State<CalendarWeek> {
-  late List<Meeting> meetings;
-  DateTime? dragStart;
+  /*DateTime? dragStart;
   DateTime? dragEnd;
+  List<Meeting> meetings = [];*/
 
   @override
-  void initState() {
-    super.initState();
-    meetings = _getDataSource();
-  }
+  Widget build(BuildContext context) {
+    return  SfCalendar(
+      showNavigationArrow: true,
+      view: CalendarView.week,
+      allowDragAndDrop: true,
+      onDragEnd: (AppointmentDragEndDetails details) {
+  // details에서 필요한 정보 추출
+  dynamic appointment = details.appointment!;
+  DateTime? draggingTime = details.droppingTime;
 
-  @override
-  Widget build(BuildContext context) { // 이 위젯이 들어있는 위젯트리에서의 위치를 가져옴.
-    return SafeArea(
-         child: GestureDetector(
-           behavior: HitTestBehavior.translucent,
-        onPanUpdate: (details) {
-          print('Pan Update Details: $details');
-          // 드래그 중인 영역 표시
-          setState(() {
-          dragEnd = dragStart != null && details.primaryDelta != null
-          ? dragStart!.add(Duration(minutes: details.primaryDelta!.toInt()))
-          : null;
-          });
-        },
-        onPanStart: (details) {
-          // 드래그 시작 시간 저장
-          setState(() {
-            dragStart = DateTime.now();
-          });
-        },
-        
-        onPanEnd: (details) {
-  print('onPanEnd is called');
-  print('dragStart at onPanEnd: $dragStart');
-  print('dragEnd at onPanEnd: $dragEnd');
-
-  // 드롭 시 새로운 일정 생성
-  if (dragStart != null) {
+  // 드래그된 시간이 존재하는 경우에만 실행
+  if (draggingTime != null) {
+    // 새로운 드래그된 시간으로 일정을 업데이트
     setState(() {
-      // 적절한 드롭 로직 추가
-      if (dragEnd == null) {
-        // dragEnd 값이 null일 경우 현재 시간으로 설정
-        dragEnd = DateTime.now();
-      }
 
-      print('Updated dragEnd at onPanEnd: $dragEnd');
-      meetings.add(Meeting('New Meeting', dragStart!, dragEnd!, Colors.blue, false));
-      dragStart = null;
-      dragEnd = null;
-
-      print('Number of meetings: ${meetings.length}');
+      appointment.from = draggingTime;
+      appointment.to = draggingTime.add(appointment.to.difference(appointment.from));
     });
   }
 },
-        child: SfCalendar(
-      showNavigationArrow: true,
-      view: CalendarView.week,
+        
       timeSlotViewSettings: const TimeSlotViewSettings(
-          timeInterval: Duration(minutes: 10),
-          timeIntervalHeight: 10,
-          startHour: 4,
-          endHour: 3,
+          timeInterval: Duration(minutes: 30),
+          timeIntervalHeight: -1,
           timeFormat: 'HH:mm',
           dayFormat: 'EEE',
           timeRulerSize: 40,
@@ -79,11 +53,11 @@ class _CalendarWeek extends State<CalendarWeek> {
       dataSource: MeetingDataSource(_getDataSource()),
       monthViewSettings: const MonthViewSettings(
           appointmentDisplayMode: MonthAppointmentDisplayMode.appointment),
-          
-    )));
+    );
+  
   }
 
-  List<Meeting> _getDataSource() {
+  List<Meeting> _getDataSource() { //일정생성?
     final List<Meeting> meetings = <Meeting>[];
     final DateTime today = DateTime.now();
     final DateTime startTime =
@@ -123,8 +97,23 @@ class MeetingDataSource extends CalendarDataSource {
   @override
   bool isAllDay(int index) {
     return appointments![index].isAllDay;
+    
   }
-}
+  
+  // 얘는 언제 호출되는겅ㅁ?
+  // 생성하면 -> 미팅클래스만들어서 리스트에 집어넣고 
+  //-> 어포인트먼트로 바꾸고(젤 최근 인덱스를?)
+  // 화면에 띄우면되는건가
+  Appointment convertToCalendarAppointment(int index) {
+    Meeting meeting = appointments![index];
+    return Appointment(
+      startTime: meeting.from,
+      endTime: meeting.to,
+      subject: meeting.eventName,
+      color: meeting.background,
+      isAllDay: meeting.isAllDay,
+    ); 
+}}
 
 class Meeting {
   Meeting(this.eventName, this.from, this.to, this.background, this.isAllDay);
@@ -135,4 +124,3 @@ class Meeting {
   Color background;
   bool isAllDay;
 }
-

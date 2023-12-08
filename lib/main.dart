@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:get/get.dart';
+import 'package:prototype/getX/data_controller.dart';
 
 import './components/calendar_week.dart';
 import './components/calendar_day.dart';
@@ -48,14 +49,15 @@ class _MyHomePageState extends State<MyHomePage> {
 
   @override
   Widget build(BuildContext context) {
+    DataController dataController = Get.put(DataController());
     Widget page;
     switch (selectedIndex) {
       case 0:
-        page = const CalendarMonth();
+        page = CalendarMonth(dataController);
         title = 'Monthly Views';
         break;
       case 1:
-        page = const CalendarWeek();
+        page = CalendarWeek(dataController: dataController);
         title = 'Weekly Views';
         break;
       case 2:
@@ -90,12 +92,9 @@ class _MyHomePageState extends State<MyHomePage> {
         onTap: _onItemTapped,
         currentIndex: selectedIndex,
         items: const <BottomNavigationBarItem>[
-          BottomNavigationBarItem(
-              icon: Icon(Icons.calendar_month), label: 'Month'),
-          BottomNavigationBarItem(
-              icon: Icon(Icons.calendar_view_week_outlined), label: 'Week'),
-          BottomNavigationBarItem(
-              icon: Icon(Icons.calendar_today_rounded), label: 'Daily'),
+          BottomNavigationBarItem(icon: Icon(Icons.calendar_month), label: 'Month'),
+          BottomNavigationBarItem(icon: Icon(Icons.calendar_view_week_outlined), label: 'Week'),
+          BottomNavigationBarItem(icon: Icon(Icons.calendar_today_rounded), label: 'Daily'),
         ], // This trailing comma makes auto-formatting nicer for build methods.
       ),
     );
