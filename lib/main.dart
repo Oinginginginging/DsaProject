@@ -61,7 +61,7 @@ class _MyHomePageState extends State<MyHomePage> {
         title = 'Weekly Views';
         break;
       case 2:
-        page = const CalendarDay();
+        page = CalendarDay(dataController);
         title = 'Daily Views';
       default:
         throw UnimplementedError('no widget for $selectedIndex');

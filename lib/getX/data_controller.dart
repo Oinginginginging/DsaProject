@@ -11,6 +11,29 @@ class DataController extends GetxController {
     mMeetings.updateMeetingData(newData);
     update();
   }
+
+  Map<DateTime, List<TodoItem>> todoLists = {
+    DateTime(DateTime.now().year, DateTime.now().month, DateTime.now().day - 1): [
+      TodoItem("일어나기", TodoState.checked),
+      TodoItem("세수하기", TodoState.checked),
+      TodoItem("양치하기", TodoState.checked),
+      TodoItem("학교가기", TodoState.checked),
+      TodoItem("친구랑 놀기", TodoState.checked),
+      TodoItem("집오기", TodoState.checked),
+      TodoItem("샤워하기", TodoState.checked),
+      TodoItem("22:00분 휴대폰 충전하기", TodoState.checked),
+      TodoItem("잠자기", TodoState.checked),
+    ],
+    DateTime(DateTime.now().year, DateTime.now().month, DateTime.now().day): [
+      TodoItem("12/18 시험 공부하기", TodoState.triangular),
+      TodoItem("발표 잘 하기", TodoState.empty)
+    ],
+    DateTime(DateTime.now().year, DateTime.now().month, DateTime.now().day + 1): [TodoItem("선배와 밥약", TodoState.empty), TodoItem("미용실 예약", TodoState.empty)],
+  };
+  Map<DateTime, String> memos = {
+    DateTime(DateTime.now().year, DateTime.now().month, DateTime.now().day): '오늘은 아침에 일어나서 세수를 했다.\n개운했다!',
+    DateTime(DateTime.now().year, DateTime.now().month, DateTime.now().day - 1): '수고했다!'
+  };
 }
 
 List<Meeting> getMeetingsDataSource() {
@@ -141,4 +164,13 @@ class MeetingDataSource extends CalendarDataSource {
 
     notifyListeners(CalendarDataSourceAction.reset, appointments!);
   }
+}
+
+enum TodoState { empty, checked, triangular }
+
+class TodoItem {
+  String text;
+  TodoState todoState;
+
+  TodoItem(this.text, this.todoState);
 }
