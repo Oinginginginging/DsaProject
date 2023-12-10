@@ -14,7 +14,6 @@ void main() {
 
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
-
   // This widget is the root of your application.
   @override
   Widget build(BuildContext context) {
@@ -24,14 +23,15 @@ class MyApp extends StatelessWidget {
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
         useMaterial3: true,
       ),
-      home: const MyHomePage(),
+      home: const MyHomePage(0),
       debugShowCheckedModeBanner: false,
     );
   }
 }
 
 class MyHomePage extends StatefulWidget {
-  const MyHomePage({super.key});
+  final int index;
+  const MyHomePage(this.index, {super.key});
 
   @override
   State<MyHomePage> createState() => _MyHomePageState();
@@ -39,18 +39,22 @@ class MyHomePage extends StatefulWidget {
 
 class _MyHomePageState extends State<MyHomePage> {
   DateTime setDate = DateTime.now();
-  var selectedIndex = 0;
+  DataController dataController = Get.put(DataController());
+  late int selectedIndex;
   var title = 'Monthly Views';
   void _onItemTapped(int index) {
     setState(() {
-      selectedIndex = index;
+      dataController.changeIndex(index);
+      dataController.changeDisplayDate(DateTime.now());
+      dataController.changeIsPressed(false);
     });
   }
 
   @override
   Widget build(BuildContext context) {
-    DataController dataController = Get.put(DataController());
+    selectedIndex = dataController.isPressed && widget.index == 1 ? widget.index : dataController.selectedIndex;
     Widget page;
+
     switch (selectedIndex) {
       case 0:
         page = CalendarMonth(dataController);
@@ -66,7 +70,6 @@ class _MyHomePageState extends State<MyHomePage> {
       default:
         throw UnimplementedError('no widget for $selectedIndex');
     }
-
     return Scaffold(
       appBar: AppBar(
         title: Text(title),

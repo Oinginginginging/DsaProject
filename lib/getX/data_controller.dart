@@ -5,6 +5,23 @@ import '../dataClass/data_class.dart';
 import 'package:flutter/material.dart';
 
 class DataController extends GetxController {
+  int selectedIndex = 0;
+  void changeIndex(index) {
+    selectedIndex = index;
+    update();
+  }
+
+  DateTime initialDisplayDate = DateTime.now();
+  void changeDisplayDate(DateTime dateTime) {
+    initialDisplayDate = dateTime;
+    update();
+  }
+
+  bool isPressed = false;
+  void changeIsPressed(bool isit) {
+    isPressed = isit;
+  }
+
   MeetingDataSource mMeetings = MeetingDataSource(getMeetingsDataSource());
 
   void updateMeeting(dynamic newData) {
@@ -152,8 +169,6 @@ class MeetingDataSource extends CalendarDataSource {
     for (var item1 in appointments!) {
       String eventName1 = item1.eventName;
       int id1 = item1.id;
-      print(eventName1 == newData.eventName);
-      print('');
       if (eventName1 == newData.eventName && id1 == newData.id) {
         result.add(newData);
       } else {

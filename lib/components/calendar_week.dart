@@ -17,7 +17,9 @@ class CalendarWeek extends StatefulWidget {
 
 class _CalendarWeek extends State<CalendarWeek> {
   late DataController dataController;
-
+  late int dragId;
+  late int sizeId;
+  late String? recurRule;
   final CalendarController calendarController = CalendarController();
 
   List<Appointment> convertToCalendarAppointment(List<dynamic> newdata) {
@@ -52,7 +54,7 @@ class _CalendarWeek extends State<CalendarWeek> {
           timeIntervalHeight: -1,
           timeFormat: 'HH:mm',
           dayFormat: 'EEE',
-          timeRulerSize: 40,
+          timeRulerSize: 60,
           timeTextStyle: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
       dataSource: _DataSource(convertToCalendarAppointment(dataController.mMeetings.appointments!)),
       allowDragAndDrop: true,
@@ -69,43 +71,142 @@ class _CalendarWeek extends State<CalendarWeek> {
           fontSize: 15,
         ),
       ),
+      initialDisplayDate: dataController.initialDisplayDate,
+      onDragStart: dragStart,
       onDragEnd: dragEnd,
       onAppointmentResizeEnd: resizeEnd,
+      onAppointmentResizeStart: resizeStart,
     ));
+  }
+
+  void dragStart(AppointmentDragStartDetails appointmentDragStartDetails) {
+    Appointment meeting = appointmentDragStartDetails.appointment as Appointment;
+    dragId = meeting.id as int;
   }
 
   void dragEnd(AppointmentDragEndDetails appointmentDragEndDetails) {
     Appointment meeting = appointmentDragEndDetails.appointment as Appointment;
+    Meeting originalMeeting = dataController.mMeetings.appointments!.firstWhere((element) => element.eventName == meeting.subject && element.id == dragId);
+    int durationh = meeting.endTime.hour - meeting.startTime.hour;
+    int durationm = meeting.endTime.minute - meeting.startTime.minute;
+    DateTime from = appointmentDragEndDetails.droppingTime!;
     final cvrt = Meeting(
-        id: dataController.mMeetings.appointments!.firstWhere((element) => element.eventName == meeting.subject).id,
+        id: originalMeeting.id,
         eventName: meeting.subject,
-        from: meeting.startTime,
-        to: meeting.endTime,
-        recurrenceRule: meeting.recurrenceRule,
+        from: from,
+        to: DateTime(from.year, from.month, from.day, from.hour + durationh, from.minute + durationm),
+        recurrenceRule: originalMeeting.recurrenceRule,
         color: meeting.color,
         recurrenceExceptionDates: meeting.recurrenceExceptionDates);
-    print(cvrt.id);
-    dataController.mMeetings.updateMeetingData(cvrt);
+    if (cvrt.recurrenceRule != null) {
+      showDialog(
+          context: context,
+          builder: (BuildContext context) {
+            return AlertDialog(
+              title: const Text("Would you like to move the whole recurring event?"),
+              actions: [
+                TextButton(
+                    onPressed: () {
+                      setState(() {
+                        dataController.updateMeeting(cvrt);
+                        Navigator.pop(context);
+                      });
+                    },
+                    child: const Text("Yes")),
+                TextButton(
+                    onPressed: () {
+                      originalMeeting.recurrenceExceptionDates == null
+                          ? originalMeeting.recurrenceExceptionDates = [meeting.startTime]
+                          : originalMeeting.recurrenceExceptionDates!.add(meeting.startTime);
+                      Meeting temp = Meeting(
+                        id: dataController.mMeetings.appointments!.length + 1,
+                        eventName: '${cvrt.eventName}${dataController.mMeetings.appointments!.length + 1}',
+                        from: cvrt.from,
+                        to: cvrt.to,
+                        color: cvrt.color,
+                      );
+                      setState(() {
+                        dataController.updateMeeting(originalMeeting);
+                        dataController.mMeetings.appointments!.add(temp);
+                        dataController.mMeetings.notifyListeners(CalendarDataSourceAction.add, dataController.mMeetings.appointments!);
+                        Navigator.pop(context);
+                      });
+                    },
+                    child: const Text("Only This")),
+              ],
+            );
+          });
+    } else {
+      dataController.updateMeeting(cvrt);
+    }
+  }
+
+  void resizeStart(AppointmentResizeStartDetails appointmentResizeStartDetails) {
+    Appointment meeting = appointmentResizeStartDetails.appointment as Appointment;
+    sizeId = meeting.id as int;
   }
 
   void resizeEnd(AppointmentResizeEndDetails appointmentResizeEndDetails) {
     Appointment meeting = appointmentResizeEndDetails.appointment as Appointment;
+    Meeting originalMeeting = dataController.mMeetings.appointments!.firstWhere((element) => element.eventName == meeting.subject && element.id == sizeId);
     final cvrt = Meeting(
         id: dataController.mMeetings.appointments!.firstWhere((element) => element.eventName == meeting.subject).id,
         eventName: meeting.subject,
         from: meeting.startTime,
         to: meeting.endTime,
-        recurrenceRule: meeting.recurrenceRule,
+        recurrenceRule: originalMeeting.recurrenceRule,
         color: meeting.color,
         recurrenceExceptionDates: meeting.recurrenceExceptionDates);
-    dataController.mMeetings.updateMeetingData(cvrt);
+
+    if (originalMeeting.recurrenceRule != null) {
+      showDialog(
+          context: context,
+          builder: (BuildContext context) {
+            return AlertDialog(
+              title: const Text("Would you like to resize the whole recurring event?"),
+              actions: [
+                TextButton(
+                    onPressed: () {
+                      setState(() {
+                        dataController.updateMeeting(cvrt);
+                        Navigator.pop(context);
+                      });
+                    },
+                    //? cvrt.recurrenceExceptionDates!.remove(DateTime(from.year, from.month, from.day, from.hour, from.minute))
+                    //   : null;
+                    child: const Text("Yes")),
+                TextButton(
+                    onPressed: () {
+                      originalMeeting.recurrenceExceptionDates == null
+                          ? originalMeeting.recurrenceExceptionDates = [meeting.startTime]
+                          : originalMeeting.recurrenceExceptionDates!.add(meeting.startTime);
+                      Meeting temp = Meeting(
+                        id: dataController.mMeetings.appointments!.length + 1,
+                        eventName: '${cvrt.eventName}${dataController.mMeetings.appointments!.length + 1}',
+                        from: cvrt.from,
+                        to: cvrt.to,
+                        color: cvrt.color,
+                      );
+                      setState(() {
+                        dataController.updateMeeting(originalMeeting);
+                        dataController.mMeetings.appointments!.add(temp);
+                        dataController.mMeetings.notifyListeners(CalendarDataSourceAction.add, dataController.mMeetings.appointments!);
+                        Navigator.pop(context);
+                      });
+                    },
+                    child: const Text("Only This")),
+              ],
+            );
+          });
+    } else {
+      dataController.mMeetings.updateMeetingData(cvrt);
+    }
   }
 
   void _onTappedEvent(CalendarTapDetails details) {
     if (details.date == null) return;
     if (details.appointments != null) {
       dynamic meeting = details.appointments![0];
-      print(meeting.color);
       if (meeting is Appointment) {
         final cvrt = Meeting(
           id: dataController.mMeetings.appointments!.firstWhere((element) => element.eventName == meeting.subject).id,
@@ -165,7 +266,7 @@ class _CalendarWeek extends State<CalendarWeek> {
 
     final recurSelect = ['NONE', 'DAILY', 'WEEKLY', 'MONTHLY', 'YEARLY'];
     var selectedRecur = meeting.recurrenceRule == null ? 'NONE' : meeting.recurrenceRule!.split(';')[0].substring(5);
-
+    Color color = meeting.color;
     showDialog(
         context: context,
         builder: (BuildContext buildContext) {
@@ -335,6 +436,46 @@ class _CalendarWeek extends State<CalendarWeek> {
                                         },
                                       ),
                                     )),
+                                Padding(
+                                  padding: const EdgeInsets.fromLTRB(40, 0, 40, 0),
+                                  child: Container(
+                                      padding: const EdgeInsets.fromLTRB(10, 10, 10, 10),
+                                      decoration: BoxDecoration(shape: BoxShape.rectangle, color: color, borderRadius: BorderRadius.circular(15.0)),
+                                      child: GestureDetector(
+                                        onTap: () {
+                                          showDialog(
+                                              context: context,
+                                              builder: (BuildContext buildcontext) {
+                                                return Dialog(
+                                                    backgroundColor: Colors.transparent,
+                                                    child: SingleChildScrollView(
+                                                      scrollDirection: Axis.vertical,
+                                                      child: Container(
+                                                          width: 50,
+                                                          height: 480,
+                                                          padding: const EdgeInsets.all(20),
+                                                          decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(15)),
+                                                          child: ColorPicker(
+                                                              enableAlpha: false,
+                                                              pickerColor: color,
+                                                              onColorChanged: ((Color colorr) {
+                                                                setInnerState(() {
+                                                                  color = colorr;
+                                                                });
+                                                                setState(() {
+                                                                  color = colorr;
+                                                                });
+                                                              }))),
+                                                    ));
+                                              });
+                                        },
+                                        child: const Text(
+                                          "Choose Color",
+                                          style: TextStyle(color: Colors.white),
+                                          textAlign: TextAlign.center,
+                                        ),
+                                      )),
+                                )
                               ],
                             ),
                             Container(
@@ -375,7 +516,6 @@ class _CalendarWeek extends State<CalendarWeek> {
                                                       originalMeeting.recurrenceExceptionDates == null
                                                           ? originalMeeting.recurrenceExceptionDates = [meeting.from]
                                                           : originalMeeting.recurrenceExceptionDates!.add(meeting.from);
-                                                      print(originalMeeting.recurrenceExceptionDates);
                                                       setState(() {
                                                         dataController.updateMeeting(originalMeeting);
                                                         Navigator.pop(context);
@@ -415,7 +555,7 @@ class _CalendarWeek extends State<CalendarWeek> {
 
                                       final editEndTime = DateTime(meeting.to.year, meeting.to.month, meeting.to.day, endedTime.hour, endedTime.minute);
                                       meeting.to = editEndTime;
-                                      print(meeting.color);
+                                      meeting.color = color;
                                       dataController.updateMeeting(meeting);
 
                                       Navigator.pop(context);

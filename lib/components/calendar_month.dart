@@ -6,6 +6,8 @@ import 'package:flutter_spinner_time_picker/flutter_spinner_time_picker.dart';
 import 'package:flutter_colorpicker/flutter_colorpicker.dart';
 import '../dataClass/data_class.dart';
 
+import '../main.dart';
+
 class CalendarMonth extends StatefulWidget {
   final DataController dataController;
 
@@ -28,11 +30,69 @@ class _CalendarMonth extends State<CalendarMonth> {
     dataController = widget.dataController;
     return Column(
       children: [
-        const SizedBox(child: Text('오늘은 날씨가 춥네요! 따듯하게 입으세요!')),
+        const SizedBox(
+            child: Text.rich(
+          TextSpan(
+            children: [
+              TextSpan(
+                text: '❝',
+                style: TextStyle(
+                  fontSize: 25,
+                ),
+              ),
+              TextSpan(
+                text: '오늘은 기온이 4°C~15°C로 일교차가 크네요. 15시엔 ',
+              ),
+              TextSpan(
+                text: '비',
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 18.0,
+                  color: Color.fromARGB(255, 77, 112, 193), // "비"의 원하는 색상
+                ),
+              ),
+              TextSpan(
+                text: '도 올 예정이에요.\n',
+              ),
+              TextSpan(
+                text: '"따듯한 여분 아우터"',
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 18.0, // 원하는 글자 크기
+                  color: Color.fromARGB(255, 235, 77, 19), // 원하는 색상
+                ),
+              ),
+              TextSpan(
+                text: '와 ',
+              ),
+              TextSpan(
+                text: '"우산"',
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 18.0,
+                  color: Color.fromARGB(255, 50, 175, 12),
+                ),
+              ),
+              TextSpan(
+                text: '을 챙기세요!',
+              ),
+              TextSpan(
+                text: '❞',
+                style: TextStyle(
+                  fontSize: 25,
+                ),
+              ),
+            ],
+          ),
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+          ),
+          textAlign: TextAlign.center,
+        )),
         Expanded(child: calendar(widget.dataController.mMeetings)),
         if (showAgenda)
           SizedBox(
-            height: MediaQuery.of(context).size.height * 0.25, // Adjust the height as needed
+            height: MediaQuery.of(context).size.height * 0.20, // Adjust the height as needed
             child: ListView.builder(
               itemCount: selectedDayAppointments.length,
               itemBuilder: (context, index) {
@@ -71,7 +131,7 @@ class _CalendarMonth extends State<CalendarMonth> {
 
     String recurrenceRule = 'NONE';
 
-    DateTime selectedDate = _calendarController.selectedDate!;
+    DateTime selectedDate = _calendarController.selectedDate ?? DateTime.now();
 
     TextEditingController textController = TextEditingController();
 
@@ -372,15 +432,22 @@ class _CalendarMonth extends State<CalendarMonth> {
 
   SfCalendar calendar(data) {
     return SfCalendar(
-      key: ValueKey(data),
-      controller: _calendarController,
-      view: CalendarView.month,
-      dataSource: data,
-      monthViewSettings: const MonthViewSettings(
-        appointmentDisplayMode: MonthAppointmentDisplayMode.appointment,
-      ),
-      onTap: _onTappedDay,
-    );
+        key: ValueKey(data),
+        controller: _calendarController,
+        view: CalendarView.month,
+        dataSource: data,
+        monthViewSettings: const MonthViewSettings(
+          appointmentDisplayMode: MonthAppointmentDisplayMode.appointment,
+        ),
+        onTap: _onTappedDay,
+        onLongPress: ((CalendarLongPressDetails detail) {
+          setState(() {
+            dataController.changeIndex(1);
+            dataController.changeDisplayDate(detail.date!);
+            dataController.changeIsPressed(true);
+          });
+          Navigator.push(context, MaterialPageRoute(builder: (context) => const MyHomePage(1)));
+        }));
   }
 
   void _editMeeting(Meeting meeting) {
@@ -424,6 +491,8 @@ class _CalendarMonth extends State<CalendarMonth> {
     final recurSelect = ['NONE', 'DAILY', 'WEEKLY', 'MONTHLY', 'YEARLY'];
     var selectedRecur = meeting.recurrenceRule == null ? 'NONE' : meeting.recurrenceRule!.split(';')[0].substring(5);
 
+    Color color = meeting.color;
+
     showDialog(
         context: context,
         builder: (BuildContext buildContext) {
@@ -431,7 +500,7 @@ class _CalendarMonth extends State<CalendarMonth> {
               backgroundColor: Colors.transparent,
               insetPadding: const EdgeInsets.all(10),
               child: SizedBox(
-                width: 30,
+                width: MediaQuery.of(context).size.width * 0.6,
                 height: 450,
                 child: DecoratedBox(
                     decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(15)),
@@ -593,6 +662,46 @@ class _CalendarMonth extends State<CalendarMonth> {
                                         },
                                       ),
                                     )),
+                                Padding(
+                                  padding: const EdgeInsets.fromLTRB(40, 0, 40, 0),
+                                  child: Container(
+                                      padding: const EdgeInsets.fromLTRB(10, 10, 10, 10),
+                                      decoration: BoxDecoration(shape: BoxShape.rectangle, color: color, borderRadius: BorderRadius.circular(15.0)),
+                                      child: GestureDetector(
+                                        onTap: () {
+                                          showDialog(
+                                              context: context,
+                                              builder: (BuildContext buildcontext) {
+                                                return Dialog(
+                                                    backgroundColor: Colors.transparent,
+                                                    child: SingleChildScrollView(
+                                                      scrollDirection: Axis.vertical,
+                                                      child: Container(
+                                                          width: 50,
+                                                          height: 480,
+                                                          padding: const EdgeInsets.all(20),
+                                                          decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(15)),
+                                                          child: ColorPicker(
+                                                              enableAlpha: false,
+                                                              pickerColor: color,
+                                                              onColorChanged: ((Color colorr) {
+                                                                setInnerState(() {
+                                                                  color = colorr;
+                                                                });
+                                                                setState(() {
+                                                                  color = colorr;
+                                                                });
+                                                              }))),
+                                                    ));
+                                              });
+                                        },
+                                        child: const Text(
+                                          "Choose Color",
+                                          style: TextStyle(color: Colors.white),
+                                          textAlign: TextAlign.center,
+                                        ),
+                                      )),
+                                )
                               ],
                             ),
                             Container(
@@ -635,7 +744,6 @@ class _CalendarMonth extends State<CalendarMonth> {
                                                       originalMeeting.recurrenceExceptionDates == null
                                                           ? originalMeeting.recurrenceExceptionDates = [meeting.from]
                                                           : originalMeeting.recurrenceExceptionDates!.add(meeting.from);
-                                                      print(originalMeeting.recurrenceExceptionDates);
                                                       setState(() {
                                                         dataController.updateMeeting(originalMeeting);
                                                         Navigator.pop(context);
@@ -674,10 +782,9 @@ class _CalendarMonth extends State<CalendarMonth> {
                                       final editStartTime =
                                           DateTime(meeting.from.year, meeting.from.month, meeting.from.day, startedTime.hour, startedTime.minute);
                                       meeting.from = editStartTime;
-                                      selectedDayAppointments =
-                                          dataController.mMeetings.appointments!.where((e) => e.from.day == meeting.from.day <= 24).toList();
                                       final editEndTime = DateTime(meeting.to.year, meeting.to.month, meeting.to.day, endedTime.hour, endedTime.minute);
                                       meeting.to = editEndTime;
+                                      meeting.color = color;
                                       dataController.updateMeeting(meeting);
                                       selectedDayAppointments =
                                           dataController.mMeetings.appointments!.where((e) => e.from.day == meeting.from.day && e.from.hour <= 24).toList();
