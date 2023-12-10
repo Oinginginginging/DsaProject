@@ -52,7 +52,7 @@ class _CalendarWeek extends State<CalendarWeek> {
           timeIntervalHeight: -1,
           timeFormat: 'HH:mm',
           dayFormat: 'EEE',
-          timeRulerSize: 40,
+          timeRulerSize: 60,
           timeTextStyle: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
       dataSource: _DataSource(convertToCalendarAppointment(dataController.mMeetings.appointments!)),
       allowDragAndDrop: true,
@@ -76,15 +76,23 @@ class _CalendarWeek extends State<CalendarWeek> {
 
   void dragEnd(AppointmentDragEndDetails appointmentDragEndDetails) {
     Appointment meeting = appointmentDragEndDetails.appointment as Appointment;
+    DateTime newStartTime = _roundToNearestHour(meeting.startTime, 15);
+    Duration duration = meeting.endTime.difference(meeting.startTime);
+    DateTime newEndTime = newStartTime.add(duration);
+    
+     print('Original Start Time: ${meeting.startTime}');
+  print('New Start Time: $newStartTime');
+  print('New End Time: $newEndTime');
+
     final cvrt = Meeting(
         id: dataController.mMeetings.appointments!.firstWhere((element) => element.eventName == meeting.subject).id,
         eventName: meeting.subject,
-        from: meeting.startTime,
-        to: meeting.endTime,
+        from: newStartTime,
+        to: newEndTime,
         recurrenceRule: meeting.recurrenceRule,
         color: meeting.color,
         recurrenceExceptionDates: meeting.recurrenceExceptionDates);
-    print(cvrt.id);
+    print(cvrt.from);
     dataController.mMeetings.updateMeetingData(cvrt);
   }
 
@@ -99,6 +107,17 @@ class _CalendarWeek extends State<CalendarWeek> {
         color: meeting.color,
         recurrenceExceptionDates: meeting.recurrenceExceptionDates);
     dataController.mMeetings.updateMeetingData(cvrt);
+  }
+
+  DateTime _roundToNearestHour(DateTime dateTime,int intervalMinutes) {
+  print('Original DateTime: $dateTime');
+  int minutes = dateTime.minute;
+  print('Minutes: $minutes');
+  int roundedMinutes = (minutes / intervalMinutes).round() * intervalMinutes;
+  print('Rounded Minutes: $roundedMinutes');
+  DateTime roundedDateTime = DateTime(dateTime.year, dateTime.month, dateTime.day, dateTime.hour, roundedMinutes);
+  print('Rounded DateTime: $roundedDateTime');
+  return roundedDateTime;
   }
 
   void _onTappedEvent(CalendarTapDetails details) {
@@ -124,6 +143,8 @@ class _CalendarWeek extends State<CalendarWeek> {
       _addMeeting(details);
     }
   }
+
+
 
   void _editMeeting(Meeting meeting) {
     TimeOfDay startedTime = TimeOfDay(hour: meeting.from.hour, minute: meeting.from.minute);

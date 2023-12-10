@@ -28,7 +28,63 @@ class _CalendarMonth extends State<CalendarMonth> {
     dataController = widget.dataController;
     return Column(
       children: [
-        const SizedBox(child: Text('오늘은 날씨가 춥네요! 따듯하게 입으세요!')),
+        const SizedBox(child: Text.rich(
+          TextSpan(
+            children: [
+               TextSpan(
+            text: '❝',
+            style: TextStyle(
+              fontSize: 25,
+            ),),
+              TextSpan(
+                text: '오늘은 기온이 4°C~15°C로 일교차가 크네요. 15시엔 ',
+              ),
+              TextSpan(
+                text: '비',
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 18.0,
+                  color: Color.fromARGB(255, 77, 112, 193), // "비"의 원하는 색상
+                ),
+              ),
+              TextSpan(
+                text: '도 올 예정이에요.\n',
+              ),
+              TextSpan(
+                text: '"따듯한 여분 아우터"',
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 18.0, // 원하는 글자 크기
+                  color: Color.fromARGB(255, 235, 77, 19), // 원하는 색상
+                ),
+              ),
+              TextSpan(
+                text: '와 ',
+              ),
+              TextSpan(
+                text: '"우산"',
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 18.0,
+                  color: Color.fromARGB(255, 50, 175, 12),
+                ),
+              ),
+              TextSpan(
+                text: '을 챙기세요!',
+              ),
+              TextSpan(
+            text: '❞',
+            style: TextStyle(
+              fontSize: 25,
+            ),),
+            ],
+          ),
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+          ),
+          textAlign: TextAlign.center,
+
+        )),
         Expanded(child: calendar(widget.dataController.mMeetings)),
         if (showAgenda)
           SizedBox(
